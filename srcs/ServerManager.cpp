@@ -22,5 +22,9 @@ ServerManager::~ServerManager()
 
 void ServerManager::run()
 {
+    const std::vector<ServerConfig> configs = this->_config.getServers();
+    std::vector<ServerConfig>::const_iterator it = configs.begin();
 
+    while (it != configs.end())
+        Server(_config, (*it++));
 }

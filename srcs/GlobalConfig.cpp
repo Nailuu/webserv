@@ -35,15 +35,9 @@ GlobalConfig& GlobalConfig::operator=(const GlobalConfig& gc)
     return (*this);
 }
 
-const ServerConfig& GlobalConfig::getServerConfig(int port) const
+const std::vector<ServerConfig> GlobalConfig::getServers() const
 {
-    for(std::vector<ServerConfig>::const_iterator it = this->_servers.begin(); it != this->_servers.end(); it++)
-    {
-        if ((*it).getPort() == port)
-            return (*it);
-    }
-
-    return (*(this->_servers.end()));
+    return (this->_servers);
 }
 
 GlobalConfig::InvalidConfigException::InvalidConfigException(const std::string& message)

@@ -13,6 +13,7 @@ public:
     ServerConfig(const ServerConfig& sc);
     ~ServerConfig();
     ServerConfig& operator=(const ServerConfig& sc);
+    std::string getHost() const;
     int getPort() const;
 
 private:

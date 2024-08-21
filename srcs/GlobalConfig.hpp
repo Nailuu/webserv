@@ -16,7 +16,7 @@ public:
     GlobalConfig(const GlobalConfig& gc);
     ~GlobalConfig();
     GlobalConfig& operator=(const GlobalConfig& gc);
-    const ServerConfig& getServerConfig(int port) const;
+    const std::vector<ServerConfig> getServers() const;
 
 private:
     std::vector<ServerConfig> _servers;
