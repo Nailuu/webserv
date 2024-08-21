@@ -1,6 +1,6 @@
 #include "ServerConfig.hpp"
 
-ServerConfig::ServerConfig(): _port(0), _host("default")
+ServerConfig::ServerConfig(): _port(8080), _host("127.0.0.1")
 {
 
 }

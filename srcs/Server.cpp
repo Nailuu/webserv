@@ -3,10 +3,37 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <exception>
+#include <string.h>
 
 Server::Server(const GlobalConfig& global, const ServerConfig &local): _global(global), _local(local)
 {
     std::cout << "Launching Server on port " << local.getPort() << std::endl;
+    std::cout << "Host of first server " << _global.getServers().at(0).getHost() << std::endl;
+}
+
+void *run(void *ptr)
+{
+    Server *server = (Server *)ptr;
+
+    while (true)
+    {
+        std::cout << "début boucle !" << std::endl;
+
+        server->prepareFds();
+
+        std::cout << "fds préparés !" << std::endl;
+        
+        if (!server->waitForUpdate() || !server->newClientCheck())
+            break ;
+        
+        std::cout << "tout s'est bien passé !!" << std::endl;
+
+        server->readCheck();
+    }
+
+    std::cout << "[" << *server << "]" << " terminé !" << std::endl;
+    server->closeAll();
+    return (NULL);
 }
 
 void Server::prepareServer(void)
@@ -15,6 +42,14 @@ void Server::prepareServer(void)
 
     if (_serverFd == -1)
         throw ServerException("Cannot create ServerSocket");
+    
+    int reuseOpt = true;
+
+    if (setsockopt(_serverFd, SOL_SOCKET, SO_REUSEADDR, &reuseOpt, sizeof(reuseOpt)) < 0)
+    {
+        close(_serverFd);
+        throw ServerException("Cannot set SO_REUSE mode");
+    }
     
     struct sockaddr_in addr;
 
@@ -44,6 +79,9 @@ void Server::prepareServer(void)
         close(_serverFd);
         throw ServerException("Cannot create stop pipe");
     }
+
+    if (_stopPipe[0] > _maxFd)
+        _maxFd = _stopPipe[0];
     
     if (pthread_create(&_thread, NULL, run, this))
     {
@@ -68,37 +106,39 @@ void Server::prepareFds(void)
     std::map<int, struct sockaddr_in>::iterator it = _clients.begin();
 
     // Put all clients fd
-    while (it != _clients.end())
-        FD_SET((*it++).first, &_readFds);
+    for (; it != _clients.end(); it++)
+        FD_SET((*it).first, &_readFds);
 }
 
-void Server::waitForUpdate(void)
+bool Server::waitForUpdate(void)
 {
-    if (select(_maxFd + 1, &_readFds, NULL, NULL, NULL))
-        throw new ServerException("Error while recovering datas with select");
+    if (select(_maxFd + 1, &_readFds, NULL, NULL, NULL) < 0)
+        return false;
     
-    if (FD_ISSET(_stopPipe[0], &_readFds))
-        throw new ServerException("Server was stopped");
+    return (!FD_ISSET(_stopPipe[0], &_readFds));
 }
 
-void Server::newClientCheck(void)
+bool Server::newClientCheck(void)
 {
     // Has a new client arrived?
     if (!FD_ISSET(_serverFd, &_readFds))
-        return ;
+        return (true);
+    
+    std::cout << "j'ai un client !" << std::endl;
     
     struct sockaddr_in infos;
-    socklen_t infos_len;
+    socklen_t infos_len = sizeof(infos);
 
     int client = accept(_serverFd, (struct sockaddr *)&infos, &infos_len);
 
     if (client == -1)
-        throw ServerException("Cannot accept client");
+        return (false);
     
     if (client > _maxFd)
         _maxFd = client;
     
     _clients.insert(std::map<int, struct sockaddr_in>::value_type(client, infos));
+    return (true);
 }
 
 void Server::readCheck(void)
@@ -112,6 +152,10 @@ void Server::readCheck(void)
 
         if (!FD_ISSET(client.first, &_readFds))
             continue ;
+        
+        std::cout << "je lis qlq chose" << std::endl;
+
+        bzero(_buffer, sizeof(_buffer));
             
         if (read(client.first, _buffer, sizeof(_buffer)) <= 0)
         {
@@ -139,30 +183,9 @@ void Server::closeAll(void)
 void Server::stop(void)
 {
     if (write(_stopPipe[1], "", 1) != 1)
-        throw ServerException("Server is not started");
-}
-
-void *run(void *ptr)
-{
-    Server *server = (Server *)ptr;
-
-    while (true)
-    {
-        server->prepareFds();
-        
-        try {
-            server->waitForUpdate();
-            server->newClientCheck();
-        } catch (std::exception &e) {
-            std::cerr << "[" << server << "] " << e.what() << std::endl;
-            break ;
-        }
-
-        server->readCheck();
-    }
-
-    server->closeAll();
-    return (NULL);
+        throw ServerException("Server is not running");
+    if (pthread_join(_thread, NULL))
+        throw ServerException("Cannot join Server Thread");
 }
 
 Server::~Server()
@@ -176,7 +199,7 @@ const char *Server::ServerException::what() const throw()
     return (_message.c_str());
 }
 
-std::ofstream &operator<<(std::ofstream &os, const Server &server)
+std::ostream &operator<<(std::ostream &os, const Server &server)
 {
     os << server._local.getHost() << ":" << server._local.getPort();
     return (os);

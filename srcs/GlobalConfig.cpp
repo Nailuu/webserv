@@ -13,6 +13,9 @@ GlobalConfig::GlobalConfig(const std::string& path)
 
     if (!file.is_open())
         throw InvalidConfigException("Could not open configuration file");
+    
+    file.close();
+    _servers.push_back(ServerConfig());
 }
 
 GlobalConfig::GlobalConfig(const GlobalConfig& gc)

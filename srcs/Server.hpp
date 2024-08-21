@@ -5,17 +5,18 @@
 #include <pthread.h>
 #include <map>
 #include <iostream>
+#include <sys/select.h>
 
 class Server
 {
     public:
         Server(const GlobalConfig& global, const ServerConfig &local);
         ~Server();
-        friend std::ofstream &operator<<(std::ofstream &os, const Server &server);
+        friend std::ostream &operator<<(std::ostream &os, const Server &server);
         void prepareServer(void);
         void prepareFds(void);
-        void waitForUpdate(void);
-        void newClientCheck(void);
+        bool waitForUpdate(void);
+        bool newClientCheck(void);
         void readCheck(void);
         void closeAll(void);
         void stop(void);
