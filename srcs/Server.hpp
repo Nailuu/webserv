@@ -1,17 +1,15 @@
 #pragma once
 
-#include <iostream>
-#include <string>
-
-#include "Config.hpp"
+#include "GlobalConfig.hpp"
+#include "ServerConfig.hpp"
 
 class Server
 {
 public:
-    Server(const std::string& config);
+    Server(const GlobalConfig& config, int port);
     ~Server();
 
 private:
-    Config _config;
-    void run();
+    const GlobalConfig& _global;
+    const ServerConfig& _local;
 };

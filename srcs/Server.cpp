@@ -1,26 +1,11 @@
 #include "Server.hpp"
 
-Server::Server(const std::string& config)
+Server::Server(const GlobalConfig& config, int port): _global(config), _local(_global.getServerConfig(port))
 {
-    std::cout << "Launching HTTP server with configuration file: \"" << config << "\"" << std::endl;
-
-    // Create config object and validate config file
-    this->_config = Config(config);
-
-    if (!this->_config.valid()) {
-        return ;
-    }
-
-    // Run server with config file
-    this->run();
+    std::cout << "Launching Server on port " << port << std::endl;
 }
 
 Server::~Server()
-{
-    std::cout << "Closing server..." << std::endl;
-}
-
-void Server::run()
 {
 
 }

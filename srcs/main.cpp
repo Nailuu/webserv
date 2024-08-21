@@ -1,5 +1,7 @@
 #include <iostream>
-#include "Server.hpp"
+
+#include "global.hpp"
+#include "ServerManager.hpp"
 
 int main(int argc, char **argv)
 {
@@ -9,7 +11,7 @@ int main(int argc, char **argv)
         return (0);
     }
 
-	Server s(argv[1]);
+	ServerManager manager(argv[1]);
 
 	return (0);
 }
