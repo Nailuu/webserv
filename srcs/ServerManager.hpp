@@ -4,8 +4,7 @@
 #include <string>
 #include <exception>
 
-#include "GlobalConfig.hpp"
-#include "ServerConfig.hpp"
+#include "ConfigParser.hpp"
 #include "Server.hpp"
 
 class ServerManager
@@ -16,7 +15,7 @@ public:
     void stopServers(void);
 
 private:
-    GlobalConfig _config;
+    std::vector<ServerConfig> _configs;
     std::vector<Server*> _servers;
     void run();
 };

@@ -6,7 +6,8 @@ ServerManager::ServerManager(const std::string& path)
 
     // Create config object and validate config file
     try {
-        this->_config = GlobalConfig(path);
+        ConfigParser c(path);
+        this->_configs = c.getConfigs();
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
@@ -41,12 +42,11 @@ void ServerManager::stopServers(void)
 
 void ServerManager::run()
 {
-    const std::vector<ServerConfig> configs = this->_config.getServers();
-    std::vector<ServerConfig>::const_iterator it = configs.begin();
+    std::vector<ServerConfig>::const_iterator it = this->_configs.begin();
 
-    for (; it != configs.end(); it++)
+    for (; it != this->_configs.end(); it++)
     {
-        Server *server = new Server(_config, (*it));
+        Server *server = new Server(*it);
 
         try {
             server->prepareServer();

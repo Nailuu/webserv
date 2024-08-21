@@ -5,10 +5,10 @@
 #include <exception>
 #include <string.h>
 
-Server::Server(const GlobalConfig& global, const ServerConfig &local): _global(global), _local(local)
+Server::Server(const ServerConfig& config): _config(config)
 {
-    std::cout << "Launching Server on port " << local.getPort() << std::endl;
-    std::cout << "Host of first server " << _global.getServers().at(0).getHost() << std::endl;
+    std::cout << "Launching Server on port " << _config.getPort() << std::endl;
+    std::cout << "Host of first server " << _config.getHost() << std::endl;
 }
 
 void *run(void *ptr)
@@ -53,14 +53,14 @@ void Server::prepareServer(void)
     
     struct sockaddr_in addr;
 
-    if (!inet_aton(_local.getHost().c_str(), &addr.sin_addr))
+    if (!inet_aton(_config.getHost().c_str(), &addr.sin_addr))
     {
         close(_serverFd);
-        throw ServerException("Invalid Host : " + _local.getHost());
+        throw ServerException("Invalid Host : " + _config.getHost());
     }
     
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(_local.getPort());
+    addr.sin_port = htons(_config.getPort());
 
     if (bind(_serverFd, (struct sockaddr *)&addr, sizeof(addr)))
     {
@@ -192,7 +192,10 @@ Server::~Server()
 {
 }
 
-Server::ServerException::ServerException(const std::string &message) : _message("Server error - " + message) {}
+Server::ServerException::ServerException(const std::string &message) : _message("Server error - " + message)
+{
+
+}
 
 const char *Server::ServerException::what() const throw()
 {
@@ -201,6 +204,6 @@ const char *Server::ServerException::what() const throw()
 
 std::ostream &operator<<(std::ostream &os, const Server &server)
 {
-    os << server._local.getHost() << ":" << server._local.getPort();
+    os << server._config.getHost() << ":" << server._config.getPort();
     return (os);
 }

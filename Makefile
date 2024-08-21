@@ -7,7 +7,7 @@ NAME = webserv
 SRCSDIR = srcs
 OBJSDIR = $(SRCSDIR)/objs
 
-SRCS = main ServerManager Server GlobalConfig ServerConfig
+SRCS = main ConfigParser ServerManager Server ServerConfig
 
 OBJS = $(addprefix $(OBJSDIR)/, $(SRCS:=.o))
 

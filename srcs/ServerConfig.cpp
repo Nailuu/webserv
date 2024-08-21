@@ -32,7 +32,7 @@ int ServerConfig::getPort() const
     return (this->_port);
 }
 
-std::string ServerConfig::getHost() const
+const std::string& ServerConfig::getHost() const
 {
     return (this->_host);
 }
