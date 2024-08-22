@@ -124,8 +124,6 @@ bool Server::newClientCheck(void)
     if (!FD_ISSET(_serverFd, &_readFds))
         return (true);
     
-    std::cout << "j'ai un client !" << std::endl;
-    
     struct sockaddr_in infos;
     socklen_t infos_len = sizeof(infos);
 
@@ -145,26 +143,35 @@ void Server::readCheck(void)
 {
     std::map<int, struct sockaddr_in>::iterator it = _clients.begin();
 
+    std::vector<std::map<int, struct sockaddr_in>::iterator> removed;
+
     // iterate all clients and check if we have received something
-    for (; it != _clients.end(); it++)
+    for (;it != _clients.end(); it++)
     {
         std::pair<int, struct sockaddr_in> client = *it;
 
         if (!FD_ISSET(client.first, &_readFds))
             continue ;
-        
-        std::cout << "je lis qlq chose" << std::endl;
 
         bzero(_buffer, sizeof(_buffer));
-            
+                
         if (read(client.first, _buffer, sizeof(_buffer)) <= 0)
         {
             close(client.first);
-            _clients.erase(it);
+            removed.push_back(it);
             continue ;
         }
 
-        std::cout << client.first << ": " << _buffer << std::endl;
+        std::string infos = _buffer;
+
+        std::cout << _buffer << std::endl;
+    }
+
+    std::vector<std::map<int, struct sockaddr_in>::iterator>::iterator it2 = removed.begin();
+
+    for (; it2 != removed.end(); it2++)
+    {
+        _clients.erase(*it2);
     }
 }
 

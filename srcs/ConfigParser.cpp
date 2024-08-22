@@ -30,12 +30,13 @@ void ConfigParser::parse(const std::string& path)
     this->sanitize();
 
 
-    try {
+    /*try {
         Pairs p = JSON::GetKeysAndValuesFromObject(this->_json);
     } catch(std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return ;
-    }
+    }*/
+   _configs.push_back(ServerConfig());
 }
 
 void ConfigParser::sanitize()

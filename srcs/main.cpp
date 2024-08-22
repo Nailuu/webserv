@@ -13,17 +13,17 @@ int main(int argc, char **argv)
 
 	ServerManager manager(argv[1]);
     
-    // std::string input;
+    std::string input;
 
-    // while (true)
-    // {
-    //     std::getline(std::cin, input);
+    while (true)
+    {
+        std::getline(std::cin, input);
 
-    //     if (std::cin.eof() || !input.compare("stop"))
-    //         break ;
-    // }
+        if (std::cin.eof() || !input.compare("stop"))
+            break ;
+    }
 
-    // manager.stopServers();
+    manager.stopServers();
 
 	return (0);
 }

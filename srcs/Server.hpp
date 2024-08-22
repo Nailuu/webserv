@@ -17,6 +17,7 @@ public:
     void prepareFds(void);
     bool waitForUpdate(void);
     bool newClientCheck(void);
+    std::map<std::string, std::string> getRequestInfos(const std::string &buffer);
     void readCheck(void);
     void closeAll(void);
     void stop(void);
