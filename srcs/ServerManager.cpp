@@ -10,6 +10,7 @@ ServerManager::ServerManager(const std::string& path)
         this->_configs = c.getConfigs();
     } catch (std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
+        return ;
     }
 
     // Run ServerManager with config file
@@ -33,7 +34,7 @@ void ServerManager::stopServers(void)
             server->stop();
             std::cout << "Finished stop() on server." << std::endl;
         } catch (std::exception &e) {
-            std::cerr << e.what() << std::endl;
+            std::cerr << "Error: " << e.what() << std::endl;
         }
         std::cout << "Deleting server." << std::endl;
         delete server;
@@ -53,7 +54,7 @@ void ServerManager::run()
             _servers.push_back(server);
         } catch (std::exception &e) {
             std::cout << "j'ai catch ici bg" << std::endl;
-            std::cerr << "[" << server << "] " << e.what() << std::endl;
+            std::cerr << "Error: [" << server << "] " << e.what() << std::endl;
             delete server;
         }
     }

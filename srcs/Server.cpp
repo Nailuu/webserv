@@ -197,7 +197,7 @@ Server::ServerException::ServerException(const std::string &message) : _message(
 
 }
 
-const char *Server::ServerException::what() const throw()
+const char* Server::ServerException::what() const throw()
 {
     return (_message.c_str());
 }

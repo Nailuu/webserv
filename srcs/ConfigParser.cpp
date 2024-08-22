@@ -17,8 +17,32 @@ void ConfigParser::parse(const std::string& path)
 
     if (!file.is_open())
         throw ParsingException("Can't open configuration file");
-    
+
+    // Read file content
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
     file.close();
+
+    this->_json = buffer.str();
+
+    // Sanitize the JSON by removing spaces and new lines
+    this->sanitize();
+
+
+    try {
+        Pairs p = JSON::GetKeysAndValuesFromObject(this->_json);
+    } catch(std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return ;
+    }
+}
+
+void ConfigParser::sanitize()
+{
+    std::size_t pos;
+    while ((pos = this->_json.find_first_of(" \n")) != std::string::npos)
+        this->_json.erase(pos, 1);
 }
 
 ConfigParser::ParsingException::ParsingException(const std::string &message) : _message("Parsing Error - " + message)
@@ -26,7 +50,7 @@ ConfigParser::ParsingException::ParsingException(const std::string &message) : _
     
 }
 
-const char *ConfigParser::ParsingException::what() const throw()
+const char* ConfigParser::ParsingException::what() const throw()
 {
     return (_message.c_str());
 }
