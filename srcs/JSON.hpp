@@ -5,21 +5,29 @@
 #include <string>
 #include <exception>
 
-typedef std::vector<std::pair<std::string, std::string> > Pairs;
+#include "Pair.hpp"
 
 class JSON
 {
 public:
-    static Pairs GetKeysAndValuesFromObject(const std::string& json);
-    static std::vector<std::string> GetObjectsFromArray(const std::string& json);
+    static std::vector<Pair> getKeysAndValuesFromObject(const std::string &json);
+    static std::vector<std::string> getObjectsFromArray(const std::string &json);
+    static std::vector<std::string> getValuesFromArray(const std::string &json);
+    static std::string sanitize(const std::string &json);
+    static std::string beautify(const std::string &json);
+
+private:
+    static std::string getContentFromArray(const std::string &json);
+    static std::size_t getClosingBracketPos(const std::string &json, std::string bracket_type);
 
     // Exception class
     class JSONException : public std::exception
     {
     public:
-        JSONException(const std::string& message);
+        JSONException(const std::string &message);
         virtual ~JSONException() throw() {};
-        virtual const char* what() const throw();
+        virtual const char *what() const throw();
+
     private:
         const std::string _message;
     };

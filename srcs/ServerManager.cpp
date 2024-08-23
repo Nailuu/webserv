@@ -1,19 +1,20 @@
 #include "ServerManager.hpp"
 
-ServerManager::ServerManager(const std::string& path)
+ServerManager::ServerManager(const std::string &path)
 {
     std::cout << "Launching ServerManager with configuration file: \"" << path << "\"" << std::endl;
 
     // Create config object and validate config file
-    try {
+    try
+    {
         ConfigParser c(path);
         this->_configs = c.getConfigs();
-    } catch (std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return ;
+    }
+    catch (std::exception &e)
+    {
+        throw;
     }
 
-    // Run ServerManager with config file
     this->run();
 }
 
@@ -24,16 +25,19 @@ ServerManager::~ServerManager()
 
 void ServerManager::stopServers(void)
 {
-    std::vector<Server*>::iterator it = _servers.begin();
+    std::vector<Server *>::iterator it = _servers.begin();
 
     for (; it != _servers.end(); it++)
     {
         Server *server = *it;
-        try {
+        try
+        {
             std::cout << "Calling stop() on server." << std::endl;
             server->stop();
             std::cout << "Finished stop() on server." << std::endl;
-        } catch (std::exception &e) {
+        }
+        catch (std::exception &e)
+        {
             std::cerr << "Error: " << e.what() << std::endl;
         }
         std::cout << "Deleting server." << std::endl;
@@ -49,10 +53,13 @@ void ServerManager::run()
     {
         Server *server = new Server(*it);
 
-        try {
+        try
+        {
             server->prepareServer();
             _servers.push_back(server);
-        } catch (std::exception &e) {
+        }
+        catch (std::exception &e)
+        {
             std::cout << "j'ai catch ici bg" << std::endl;
             std::cerr << "Error: [" << server << "] " << e.what() << std::endl;
             delete server;
