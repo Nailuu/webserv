@@ -31,11 +31,27 @@ void ConfigParser::parse(const std::string &path)
     {
         std::vector<Pair> pairs = JSON::getKeysAndValuesFromObject(this->_json);
 
-        // for (std::vector<Pair>::const_iterator it = pairs.begin(); it != pairs.end(); it++)
-        //     std::cout << "Key: " << (*it).getKey() << "\n----------------------\nValue: " << (*it).getValue() << std::endl;
-
+        // Verify that on top of the JSON configuration object there is a key = servers
         if (!Pair::exist("servers", pairs))
             throw ParsingException("Expected 'servers' in the configuration file");
+
+        // Get servers configuration
+        std::vector<std::string> servers = JSON::getObjectsFromArray(Pair::get("servers", pairs).getValue());
+
+        // Verify there is at least one object in the servers array
+        if (servers.empty())
+            throw ParsingException("Expected at least one server configuration in 'servers'");
+
+        // Loop through every servers object
+        for (std::vector<std::string>::const_iterator it = servers.begin(); it != servers.end(); it++)
+        {
+            pairs = JSON::getKeysAndValuesFromObject(*it);
+
+            // Try to build ServerConfig object
+            ServerConfig config(pairs);
+
+            this->_configs.push_back(config);
+        }
     }
     catch (std::exception &e)
     {

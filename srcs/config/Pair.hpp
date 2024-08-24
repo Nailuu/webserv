@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 class Pair
 {
@@ -16,3 +17,5 @@ private:
     std::string _key;
     std::string _value;
 };
+
+std::ostream& operator<<(std::ostream& os, const Pair& p);

@@ -4,7 +4,7 @@
 #include <string>
 #include <exception>
 
-#include "ConfigParser.hpp"
+#include "config/ConfigParser.hpp"
 #include "Server.hpp"
 
 class ServerManager

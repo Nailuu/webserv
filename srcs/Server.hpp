@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sys/select.h>
 
-#include "ServerConfig.hpp"
+#include "config/ServerConfig.hpp"
 #include "Request.hpp"
 
 class Server

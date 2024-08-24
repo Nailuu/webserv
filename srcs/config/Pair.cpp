@@ -35,3 +35,13 @@ const Pair &Pair::get(const std::string &key, const std::vector<Pair> &pairs)
 
     return (pairs.at(0));
 }
+
+std::ostream &operator<<(std::ostream &os, const Pair &p)
+{
+    os << "Key: " << p.getKey() << std::endl;
+    os << "Value: " << std::endl;
+    os << p.getValue() << std::endl;
+    os << "----------------------------------";
+
+    return (os);
+}

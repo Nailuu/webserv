@@ -47,6 +47,9 @@ std::vector<std::string> JSON::getObjectsFromArray(const std::string &json)
 
         std::string array = getContentFromArray(json);
 
+        if (array.empty())
+            return (result);
+
         while (true)
         {
             // if first character is a comma, skip it
@@ -66,8 +69,12 @@ std::vector<std::string> JSON::getObjectsFromArray(const std::string &json)
             if (pos == std::string::npos)
                 throw JSONException("Object is never closed '}'\n" + beautify(array));
 
+            std::string object = array.substr(0, pos + 1);
+            if (object.length() == 2)
+                throw JSONException("Object is empty!\n" + beautify(array));
+
             // Push full object including open and close curly braces to vector
-            result.push_back(array.substr(0, pos + 1));
+            result.push_back(object);
 
             // Check that after a closing curly bracket there is a comma
             if ((array.length() - 1) == pos || array.at(pos + 1) != ',')
@@ -91,6 +98,9 @@ std::vector<Pair> JSON::getKeysAndValuesFromObject(const std::string &json)
 
     if (json.at(json.length() - 1) != '}')
         throw JSONException("Object is never closed '}'\n" + beautify(json));
+
+    if (json.length() == 2)
+        throw JSONException("Object is empty!\n" + beautify(json));
 
     std::vector<Pair> result;
 
@@ -129,7 +139,7 @@ std::vector<Pair> JSON::getKeysAndValuesFromObject(const std::string &json)
             if (pos == std::string::npos)
                 throw JSONException("Array is never closed ']'\n" + beautify(tmp));
 
-            value = tmp.substr(1, pos - 1);
+            value = tmp.substr(0, pos + 1);
         }
         else if (tmp.at(0) == '"')
         {
@@ -164,6 +174,9 @@ std::vector<std::string> JSON::getValuesFromArray(const std::string &json)
         std::vector<std::string> result;
 
         std::string array = getContentFromArray(json);
+        
+        if (array.empty())
+            return (result);
 
         while (true)
         {
@@ -191,8 +204,13 @@ std::vector<std::string> JSON::getValuesFromArray(const std::string &json)
             if (pos == std::string::npos)
                 throw JSONException("Expected value to end with '\"'\n" + beautify(array));
 
+            std::string str = array.substr(1, pos - 1);
+
+            if (str.empty())
+                throw JSONException("Expected value between quotes, cannot have empty quotes in array\n" + beautify(array));
+
             // Push value to vector without quote
-            result.push_back(array.substr(1, pos - 1));
+            result.push_back(str);
 
             // Check that after a value there is a comma
             if ((array.length() - 1) == pos || array.at(pos + 1) != ',')
