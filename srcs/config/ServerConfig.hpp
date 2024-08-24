@@ -5,9 +5,6 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <cerrno>
 #include <cstring>
 
@@ -21,8 +18,6 @@ class ServerConfig
 {
 public:
     ServerConfig(const std::vector<Pair> &pairs);
-    ServerConfig(const ServerConfig &sc);
-    ServerConfig &operator=(const ServerConfig &sc);
     int getPort() const;
     int getMaxBodySize() const;
     const std::string &getHost() const;
@@ -42,7 +37,6 @@ private:
     std::vector<HTTP_METHOD> _accepted_http_methods;
     std::vector<Route> _routes;
     void stringToInt(const std::string &str, int &result, const std::string &context);
-    bool isValidDirectory(const std::string& path) const;
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 
     // Exception class
@@ -57,3 +51,5 @@ private:
         const std::string _message;
     };
 };
+
+std::ostream& operator<<(std::ostream& os, const ServerConfig& sc);

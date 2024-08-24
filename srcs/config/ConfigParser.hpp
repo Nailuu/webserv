@@ -24,6 +24,7 @@ private:
     std::string _json;
     std::vector<ServerConfig> _configs;
     void parse(const std::string &path);
+    void output() const;
 
     // Exception class
     class ParsingException : public std::exception

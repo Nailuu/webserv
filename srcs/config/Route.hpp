@@ -2,10 +2,16 @@
 
 #include <string>
 #include <vector>
+#include <exception>
+#include <sstream>
+#include <fstream>
+#include <cerrno>
+#include <cstring>
 
 #include "../global.hpp"
 #include "Pair.hpp"
 #include "VectorDebugger.hpp"
+#include "JSON.hpp"
 
 class Route
 {
@@ -24,6 +30,8 @@ private:
     std::string _root;
     std::string _index;
     std::vector<HTTP_METHOD> _accepted_http_methods;
+    void stringToInt(const std::string &str, int &result, const std::string &context);
+    void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 
     // Exception class
     class RouteException : public std::exception
@@ -37,3 +45,5 @@ private:
         const std::string _message;
     };
 };
+
+std::ostream& operator<<(std::ostream& os, const Route& r);

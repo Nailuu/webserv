@@ -57,6 +57,20 @@ void ConfigParser::parse(const std::string &path)
     {
         throw;
     }
+
+    // Output all ServerConfig in console
+    this->output();
+}
+
+void ConfigParser::output() const
+{
+    std::cout << std::endl;
+
+    for (std::vector<ServerConfig>::const_iterator it = this->_configs.begin(); it != this->_configs.end(); it++)
+    {
+        std::cout << (*it);
+        std::cout << ((it + 1) == this->_configs.end() ? "------------------------------------------\n\n" : "");
+    }
 }
 
 ConfigParser::ParsingException::ParsingException(const std::string &message) : _message("Parsing Error - " + message)

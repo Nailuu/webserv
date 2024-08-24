@@ -22,7 +22,7 @@ ServerConfig::ServerConfig(const std::vector<Pair> &pairs) : _max_body_size(DEFA
 
     // ROOT
     this->validate("root", pairs, this->_root);
-    if (!this->isValidDirectory(this->_root))
+    if (!isValidDirectory(this->_root))
         throw ServerConfigException("Path in 'root' is not a valid directory path: '" + this->_root + "'");
 
     // INDEX
@@ -47,8 +47,12 @@ ServerConfig::ServerConfig(const std::vector<Pair> &pairs) : _max_body_size(DEFA
 
         for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
         {
-            // VALIDATE HTTP METHODS
-            // this->_accepted_http_methods.push_back();
+            HTTP_METHOD hm = getHttpMethodFromString(*it);
+
+            if (hm == UNKNOWN)
+                throw ServerConfigException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
+
+            this->_accepted_http_methods.push_back(hm);
         }
 
         // ROUTES
@@ -77,23 +81,6 @@ ServerConfig::ServerConfig(const std::vector<Pair> &pairs) : _max_body_size(DEFA
     {
         throw;
     }
-}
-
-ServerConfig::ServerConfig(const ServerConfig &sc)
-{
-    *this = sc;
-}
-
-ServerConfig &ServerConfig::operator=(const ServerConfig &sc)
-{
-    if (this != &sc)
-    {
-        this->_port = sc._port;
-        this->_host = sc._host;
-        this->_accepted_http_methods = sc._accepted_http_methods;
-    }
-
-    return (*this);
 }
 
 int ServerConfig::getPort() const
@@ -152,19 +139,6 @@ void ServerConfig::validate(const std::string &key, const std::vector<Pair> &pai
         result = "";
 }
 
-bool ServerConfig::isValidDirectory(const std::string &path) const
-{
-    struct stat info;
-
-    if (stat(path.c_str(), &info) != 0)
-        return (false);
-
-    if (info.st_mode & S_IFDIR)
-        return (true);
-
-    return (false);
-}
-
 void ServerConfig::stringToInt(const std::string &str, int &result, const std::string &context)
 {
     std::stringstream ss(str);
@@ -181,4 +155,31 @@ ServerConfig::ServerConfigException::ServerConfigException(const std::string &me
 const char *ServerConfig::ServerConfigException::what() const throw()
 {
     return (_message.c_str());
+}
+
+std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
+{
+    os << "------------------------------------------" << std::endl
+       << std::endl;
+
+    os << "   Name: " << (sc.getName().empty() ? "N/A" : sc.getName()) << std::endl;
+    os << "   Port: " << sc.getPort() << std::endl;
+    os << "   Host: " << sc.getHost() << std::endl;
+    os << "   Root folder: '" << sc.getRoot() << "'" << std::endl;
+    os << "   Index file: '" << sc.getIndex() << "'" << std::endl;
+    os << "   Maximum request body size: " << sc.getMaxBodySize() << std::endl;
+    os << "   Accepted HTTP methods: [";
+
+    const std::vector<HTTP_METHOD> methods = sc.getHTTPMethods();
+    for (std::vector<HTTP_METHOD>::const_iterator it = methods.begin(); it != methods.end(); it++)
+        std::cout << (it == methods.begin() ? "" : ", ") << getStringFromHttpMethod(*it);
+    os << "]" << std::endl;
+
+    os << "\n   Routes: " << std::endl;
+    const std::vector<Route> routes = sc.getRoutes();
+    for (std::vector<Route>::const_iterator it = routes.begin(); it != routes.end(); it++)
+        std::cout << "\n"
+                  << (*it) << std::endl;
+
+    return (os);
 }
