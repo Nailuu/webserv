@@ -48,10 +48,13 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
 
         for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
         {
-            HTTP_METHOD hm = getHttpMethodFromString(*it);
-
-            if (hm == UNKNOWN)
+            HttpMethod hm;
+            
+            try {
+                hm = HttpMethod::get(*it);
+            } catch (const HttpMethod::EnumException &e) {
                 throw ServerConfigException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
+            }
 
             this->_accepted_http_methods.push_back(hm);
         }
@@ -114,7 +117,7 @@ const std::string &ServerConfig::getIndex(void) const
     return (this->_index);
 }
 
-const std::vector<HTTP_METHOD> &ServerConfig::getHTTPMethods(void) const
+const std::vector<HttpMethod> &ServerConfig::getHTTPMethods(void) const
 {
     return (this->_accepted_http_methods);
 }
@@ -171,9 +174,9 @@ std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
     os << "   Maximum request body size: " << sc.getMaxBodySize() << std::endl;
     os << "   Accepted HTTP methods: [";
 
-    const std::vector<HTTP_METHOD> methods = sc.getHTTPMethods();
-    for (std::vector<HTTP_METHOD>::const_iterator it = methods.begin(); it != methods.end(); it++)
-        std::cout << (it == methods.begin() ? "" : ", ") << getStringFromHttpMethod(*it);
+    const std::vector<HttpMethod> methods = sc.getHTTPMethods();
+    for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
+        std::cout << (it == methods.begin() ? "" : ", ") << (HttpMethod (*it)).getKey();
     os << "]" << std::endl;
 
     os << "\n   Routes: " << std::endl;

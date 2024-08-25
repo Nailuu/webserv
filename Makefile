@@ -8,6 +8,7 @@ SRCSDIR = srcs
 OBJSDIR = $(SRCSDIR)/objs
 
 SRCS = main ServerManager Server global \
+	enum/MimeType enum/HttpMethod enum/HttpStatusCode \
 	request/HTTPPayload request/Request request/Response \
 	config/ConfigParser config/Route config/ServerConfig config/JSON config/Pair
 

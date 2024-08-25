@@ -1,6 +1,6 @@
 #include "Route.hpp"
 
-Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HTTP_METHOD> &methods)
+Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods)
 {
     this->_max_body_size = maxBodySize;
     this->_route = route;
@@ -58,10 +58,13 @@ void Route::update(const std::vector<Pair> &pairs)
 
             for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
             {
-                HTTP_METHOD hm = getHttpMethodFromString(*it);
+                HttpMethod hm;
 
-                if (hm == UNKNOWN)
+                try {
+                    hm = HttpMethod::get(*it);
+                } catch (const HttpMethod::EnumException &e) {
                     throw RouteException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
+                }
 
                 this->_accepted_http_methods.push_back(hm);
             }
@@ -93,7 +96,7 @@ const std::string &Route::getIndex(void) const
     return (this->_index);
 }
 
-const std::vector<HTTP_METHOD> &Route::getHTTPMethods(void) const
+const std::vector<HttpMethod> &Route::getHTTPMethods(void) const
 {
     return (this->_accepted_http_methods);
 }
@@ -140,9 +143,9 @@ std::ostream &operator<<(std::ostream &os, const Route &r)
     os << "      Max Request Body Size: " << r.getMaxBodySize() << std::endl;
     os << "      Accepted HTTP methods: [";
 
-    const std::vector<HTTP_METHOD> methods = r.getHTTPMethods();
-    for (std::vector<HTTP_METHOD>::const_iterator it = methods.begin(); it != methods.end(); it++)
-        std::cout << (it == methods.begin() ? "" : ", ") << getStringFromHttpMethod(*it);
+    const std::vector<HttpMethod> methods = r.getHTTPMethods();
+    for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
+        std::cout << (it == methods.begin() ? "" : ", ") << ((HttpMethod) *it).getKey();
     os << "]" << std::endl;
 
     return (os);

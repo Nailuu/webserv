@@ -3,7 +3,7 @@
 Server::Server(const ServerConfig &config) : _config(config)
 {
     std::cout << "Launching Server on port " << _config.getPort() << std::endl;
-    std::cout << "Host of first server " << _config.getHost() << std::endl;
+    std::cout << "Host of server " << _config.getHost() << std::endl;
 }
 
 void *run(void *ptr)
@@ -12,16 +12,10 @@ void *run(void *ptr)
 
     while (true)
     {
-        std::cout << "début boucle !" << std::endl;
-
         server->prepareFds();
-
-        std::cout << "fds préparés !" << std::endl;
 
         if (!server->waitForUpdate() || !server->newClientCheck())
             break;
-
-        std::cout << "tout s'est bien passé !!" << std::endl;
 
         server->readCheck();
     }
@@ -130,7 +124,7 @@ bool Server::newClientCheck(void)
     if (client > _maxFd)
         _maxFd = client;
 
-    _clients.insert(std::map<int, struct sockaddr_in>::value_type(client, infos));
+    _clients.insert(std::make_pair(client, infos));
     return (true);
 }
 
@@ -176,7 +170,7 @@ void Server::readCheck(void)
                 std::cout << info.first << ": " << info.second << std::endl;
             }
 
-            Response res("HTTP/1.1", NotFound);
+            Response res("HTTP/1.1", HttpStatusCode::NOT_FOUND);
             res.setContentFile("data/404.html");
             res.addField("Connection", "close");
 
