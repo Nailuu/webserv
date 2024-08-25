@@ -68,6 +68,24 @@ const HttpStatusCode &Response::getStatusCode(void) const
     return (_statusCode);
 }
 
+const Response Response::getFileResponse(const std::string &path)
+{
+    Response res("HTTP/1.1", HttpStatusCode::OK);
+    res.setContentFile(path);
+    res.addField("Connection", "close");
+
+    return (res);
+}
+
+const Response Response::getErrorResponse(const HttpStatusCode &status, const std::string &path)
+{
+    Response res("HTTP/1.1", status);
+    res.setContentFile(path);
+    res.addField("Connection", "close");
+
+    return (res);
+}
+
 const std::string Response::build(void) const
 {
     std::ostringstream oss;

@@ -28,5 +28,7 @@ public:
     void setContent(const std::string &content, const MimeType &mimeType);
     void setContentFile(const std::string &path);
     const HttpStatusCode &getStatusCode(void) const;
+    static const Response getFileResponse(const std::string &path);
+    static const Response getErrorResponse(const HttpStatusCode &status, const std::string &path);
     const std::string build(void) const;
 };

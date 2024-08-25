@@ -170,14 +170,30 @@ void Server::readCheck(void)
                 std::cout << info.first << ": " << info.second << std::endl;
             }
 
-            Response res("HTTP/1.1", HttpStatusCode::NOT_FOUND);
-            res.setContentFile("data/404.html");
-            res.addField("Connection", "close");
+            std::ostringstream path;
 
-            const std::string res_str = res.build();
+            if (req.getPath().at(req.getPath().size() - 1) == '/') {
+                path << _config.getRoot() << "/" << _config.getIndex();
+            } else {
+                path << _config.getRoot() << req.getPath();
+            }
 
-            // TODO: Non-blocking write
-            write(client.first, res_str.c_str(), res_str.length());
+            std::cout << "Path: " << path.str() << std::endl;
+
+            try {
+                Response res = Response::getFileResponse(path.str());
+                const std::string res_str = res.build();
+
+                // TODO: Non-blocking write
+                write(client.first, res_str.c_str(), res_str.length());
+            } catch (const std::exception &e) {
+                Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
+
+                const std::string res_str = res.build();
+
+                // TODO: Non-blocking write
+                write(client.first, res_str.c_str(), res_str.length());
+            }
         }
         catch (std::exception &e)
         {
