@@ -1,5 +1,7 @@
 #include "Server.hpp"
 #include "global.hpp"
+#include "request/InRequest.hpp"
+#include "request/OutRequest.hpp"
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -165,23 +167,30 @@ void Server::readCheck(void)
         }
 
         try {
-            Request request = Request::fromString(_buffer);
+            InRequest InRequest = InRequest::fromString(_buffer);
 
             // Output for demonstration
-            std::cout << "Request Method: " << request.getMethod() << std::endl;
-            std::cout << "Request Path: " << request.getPath() << std::endl;
-            std::cout << "HTTP Version: " << request.getHttpVersion() << std::endl;
-            std::cout << "Host: " << request.getHost() << std::endl;
+            std::cout << "Request Method: " << InRequest.getMethod() << std::endl;
+            std::cout << "Request Path: " << InRequest.getPath() << std::endl;
+            std::cout << "HTTP Version: " << InRequest.getHttpVersion() << std::endl;
+            std::cout << "Host: " << InRequest.getHost() << std::endl;
 
-            std::map<std::string, std::string>::const_iterator it = request.getFields().begin();
+            std::map<std::string, std::string>::const_iterator it = InRequest.getFields().begin();
 
-            for (; it != request.getFields().end(); it++)
+            for (; it != InRequest.getFields().end(); it++)
             {
                 std::pair<std::string, std::string> info = *it;
 
                 std::cout << info.first << ": " << info.second << std::endl;
             }
 
+            OutRequest outRequest("HTTP/1.1", NotFound);
+            outRequest.setContentFile("data/404.html");
+            outRequest.addField("Connection", "close");
+            const std::string requestStr = outRequest.build();
+
+            // TODO: Non-blocking write
+            write(client.first, requestStr.c_str(), requestStr.length());
         } catch (const Request::RequestException &e) {
             std::cerr << e.what() << std::endl;
         }

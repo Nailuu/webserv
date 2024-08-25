@@ -8,6 +8,7 @@
 
 #define HTTP_METHODS (const char*[]) { "GET", "POST", "PUT", "DELETE" }
 #define DEFAULT_MAX_BODY_SIZE 2000
+#define SERVER_NAME "Webserv/1.0.0"
 
 enum HTTP_METHOD
 {

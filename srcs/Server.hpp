@@ -6,7 +6,6 @@
 #include <sys/select.h>
 
 #include "config/ServerConfig.hpp"
-#include "Request.hpp"
 
 class Server
 {
