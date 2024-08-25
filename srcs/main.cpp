@@ -13,7 +13,9 @@ int main(int argc, char **argv)
 
     try
     {
-        ServerManager manager(argv[1]);
+        // Launch ServerManager that will parse configuration file and manager servers
+        ServerManager manager;
+        manager.run(argv[1]);
 
         std::string input;
 

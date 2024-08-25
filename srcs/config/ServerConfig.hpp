@@ -17,15 +17,16 @@
 class ServerConfig
 {
 public:
-    ServerConfig(const std::vector<Pair> &pairs);
-    int getPort() const;
-    int getMaxBodySize() const;
-    const std::string &getHost() const;
-    const std::string &getName() const;
-    const std::string &getRoot() const;
-    const std::string &getIndex() const;
-    const std::vector<HTTP_METHOD> &getHTTPMethods() const;
-    const std::vector<Route> &getRoutes() const;
+    ServerConfig();
+    void build(const std::vector<Pair> &pairs);
+    int getPort(void) const;
+    int getMaxBodySize(void) const;
+    const std::string &getHost(void) const;
+    const std::string &getName(void) const;
+    const std::string &getRoot(void) const;
+    const std::string &getIndex(void) const;
+    const std::vector<HTTP_METHOD> &getHTTPMethods(void) const;
+    const std::vector<Route> &getRoutes(void) const;
 
 private:
     int _port;
@@ -52,4 +53,4 @@ private:
     };
 };
 
-std::ostream& operator<<(std::ostream& os, const ServerConfig& sc);
+std::ostream &operator<<(std::ostream &os, const ServerConfig &sc);

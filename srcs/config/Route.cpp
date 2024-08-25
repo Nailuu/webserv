@@ -73,27 +73,27 @@ void Route::update(const std::vector<Pair> &pairs)
     }
 }
 
-int Route::getMaxBodySize() const
+int Route::getMaxBodySize(void) const
 {
     return (this->_max_body_size);
 }
 
-const std::string &Route::getRoute() const
+const std::string &Route::getRoute(void) const
 {
     return (this->_route);
 }
 
-const std::string &Route::getRoot() const
+const std::string &Route::getRoot(void) const
 {
     return (this->_root);
 }
 
-const std::string &Route::getIndex() const
+const std::string &Route::getIndex(void) const
 {
     return (this->_index);
 }
 
-const std::vector<HTTP_METHOD> &Route::getHTTPMethods() const
+const std::vector<HTTP_METHOD> &Route::getHTTPMethods(void) const
 {
     return (this->_accepted_http_methods);
 }

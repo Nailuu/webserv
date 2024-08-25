@@ -1,21 +1,7 @@
 #include "ServerManager.hpp"
 
-ServerManager::ServerManager(const std::string &path)
+ServerManager::ServerManager()
 {
-    std::cout << "Launching ServerManager with configuration file: \"" << path << "\"" << std::endl;
-
-    // Create config object and validate config file
-    try
-    {
-        ConfigParser c(path);
-        this->_configs = c.getConfigs();
-    }
-    catch (std::exception &e)
-    {
-        throw;
-    }
-
-    this->run();
 }
 
 ServerManager::~ServerManager()
@@ -45,8 +31,23 @@ void ServerManager::stopServers(void)
     }
 }
 
-void ServerManager::run()
+void ServerManager::run(const std::string &path)
 {
+    std::cout << "Launching ServerManager with configuration file: \"" << path << "\"" << std::endl;
+
+    // Create config object and parse configuration file
+    try
+    {
+        ConfigParser c;
+        c.parse(path);
+
+        this->_configs = c.getConfigs();
+    }
+    catch (std::exception &e)
+    {
+        throw;
+    }
+
     std::vector<ServerConfig>::const_iterator it = this->_configs.begin();
 
     for (; it != this->_configs.end(); it++)

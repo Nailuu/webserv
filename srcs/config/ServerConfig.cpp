@@ -1,9 +1,9 @@
 #include "ServerConfig.hpp"
 
-ServerConfig::ServerConfig(const std::vector<Pair> &pairs) : _max_body_size(DEFAULT_MAX_BODY_SIZE)
-{
-    // VectorDebugger<Pair>::print(pairs);
+ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE) {}
 
+void ServerConfig::build(const std::vector<Pair> &pairs)
+{
     std::string tmp;
 
     // PORT
@@ -11,8 +11,9 @@ ServerConfig::ServerConfig(const std::vector<Pair> &pairs) : _max_body_size(DEFA
     this->stringToInt(tmp, this->_port, "port");
 
     // MAX BODY SIZE
-    this->validate("max_body_size", pairs, tmp);
-    this->stringToInt(tmp, this->_max_body_size, "max_body_size");
+    this->validate("max_body_size", pairs, tmp, false);
+    if (!tmp.empty())
+        this->stringToInt(tmp, this->_max_body_size, "max_body_size");
 
     // HOST
     this->validate("host", pairs, this->_host);
@@ -83,42 +84,42 @@ ServerConfig::ServerConfig(const std::vector<Pair> &pairs) : _max_body_size(DEFA
     }
 }
 
-int ServerConfig::getPort() const
+int ServerConfig::getPort(void) const
 {
     return (this->_port);
 }
 
-int ServerConfig::getMaxBodySize() const
+int ServerConfig::getMaxBodySize(void) const
 {
     return (this->_max_body_size);
 }
 
-const std::string &ServerConfig::getHost() const
+const std::string &ServerConfig::getHost(void) const
 {
     return (this->_host);
 }
 
-const std::string &ServerConfig::getName() const
+const std::string &ServerConfig::getName(void) const
 {
     return (this->_name);
 }
 
-const std::string &ServerConfig::getRoot() const
+const std::string &ServerConfig::getRoot(void) const
 {
     return (this->_root);
 }
 
-const std::string &ServerConfig::getIndex() const
+const std::string &ServerConfig::getIndex(void) const
 {
     return (this->_index);
 }
 
-const std::vector<HTTP_METHOD> &ServerConfig::getHTTPMethods() const
+const std::vector<HTTP_METHOD> &ServerConfig::getHTTPMethods(void) const
 {
     return (this->_accepted_http_methods);
 }
 
-const std::vector<Route> &ServerConfig::getRoutes() const
+const std::vector<Route> &ServerConfig::getRoutes(void) const
 {
     return (this->_routes);
 }

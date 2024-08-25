@@ -1,29 +1,20 @@
 #pragma once
 
-#include "../global.hpp"
-#include <map>
+#include "HTTPPayload.hpp"
 
-class Request
+class Request : public HTTPPayload
 {
-    protected:
-        const std::string _httpVersion;
-        std::map<std::string, std::string> _fields;
-    public:
-        Request();
-        virtual ~Request() = 0;
-        Request(const std::string &httpVersion);
-        Request(const Request &other);
-        Request operator=(const Request &other);
-        const std::string &getHttpVersion(void) const;
-        const std::map<std::string, std::string> &getFields(void) const;
-        void addField(const std::string &key, const std::string &value);
-        class RequestException : public std::exception
-        {
-            public:
-                RequestException(const std::string& message);
-                virtual ~RequestException() throw() {};
-                virtual const char* what() const throw();
-            private:
-                const std::string _message;
-        };
+private:
+    const HTTP_METHOD _method;
+    const std::string _path;
+    const std::string _host;
+    static const std::string extractAndValidate(std::string &str, const std::string &delimiter);
+
+public:
+    Request(const HTTP_METHOD method, const std::string &path, const std::string &httpVersion, const std::string &host);
+    Request(const Request &other);
+    static Request fromString(std::string str);
+    HTTP_METHOD getMethod(void) const;
+    const std::string &getPath(void) const;
+    const std::string &getHost(void) const;
 };

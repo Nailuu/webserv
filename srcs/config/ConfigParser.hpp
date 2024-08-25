@@ -17,14 +17,14 @@
 class ConfigParser
 {
 public:
-    ConfigParser(const std::string &path);
+    ConfigParser();
+    void parse(const std::string &path);
     const std::vector<ServerConfig> &getConfigs() const;
 
 private:
     std::string _json;
     std::vector<ServerConfig> _configs;
-    void parse(const std::string &path);
-    void output() const;
+    void output(void) const;
 
     // Exception class
     class ParsingException : public std::exception

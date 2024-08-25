@@ -10,6 +10,7 @@
 class JSON
 {
 public:
+    virtual ~JSON() = 0;
     static std::vector<Pair> getKeysAndValuesFromObject(const std::string &json);
     static std::vector<std::string> getObjectsFromArray(const std::string &json);
     static std::vector<std::string> getValuesFromArray(const std::string &json);

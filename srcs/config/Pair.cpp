@@ -1,15 +1,13 @@
 #include "Pair.hpp"
 
-Pair::Pair(std::string &key, std::string &value) : _key(key), _value(value)
-{
-}
+Pair::Pair(std::string &key, std::string &value) : _key(key), _value(value) {}
 
-const std::string &Pair::getKey() const
+const std::string &Pair::getKey(void) const
 {
     return (this->_key);
 }
 
-const std::string &Pair::getValue() const
+const std::string &Pair::getValue(void) const
 {
     return (this->_value);
 }

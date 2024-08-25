@@ -1,18 +1,26 @@
 #pragma once
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <exception>
+#include <string.h>
+#include <sstream>
 #include <pthread.h>
 #include <map>
 #include <iostream>
 #include <sys/select.h>
 
+#include "global.hpp"
 #include "config/ServerConfig.hpp"
+#include "request/Request.hpp"
+#include "request/Response.hpp"
 
 class Server
 {
 public:
     Server(const ServerConfig &config);
     ~Server();
-    friend std::ostream &operator<<(std::ostream &os, const Server &server);
     void prepareServer(void);
     void prepareFds(void);
     bool waitForUpdate(void);
@@ -20,6 +28,7 @@ public:
     void readCheck(void);
     void closeAll(void);
     void stop(void);
+    const ServerConfig& getConfig() const;
 
 private:
     const ServerConfig& _config;
@@ -40,3 +49,5 @@ private:
         const std::string _message;
     };
 };
+
+std::ostream &operator<<(std::ostream &os, const Server &server);

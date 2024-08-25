@@ -1,9 +1,6 @@
 #include "ConfigParser.hpp"
 
-ConfigParser::ConfigParser(const std::string &path)
-{
-    this->parse(path);
-}
+ConfigParser::ConfigParser() {}
 
 const std::vector<ServerConfig> &ConfigParser::getConfigs() const
 {
@@ -48,7 +45,8 @@ void ConfigParser::parse(const std::string &path)
             pairs = JSON::getKeysAndValuesFromObject(*it);
 
             // Try to build ServerConfig object
-            ServerConfig config(pairs);
+            ServerConfig config;
+            config.build(pairs);
 
             this->_configs.push_back(config);
         }
@@ -62,7 +60,7 @@ void ConfigParser::parse(const std::string &path)
     this->output();
 }
 
-void ConfigParser::output() const
+void ConfigParser::output(void) const
 {
     std::cout << std::endl;
 

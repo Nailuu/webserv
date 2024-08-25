@@ -18,11 +18,11 @@ class Route
 public:
     Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HTTP_METHOD> &methods);
     void update(const std::vector<Pair>& pairs);
-    int getMaxBodySize() const;
-    const std::string &getRoute() const;
-    const std::string &getRoot() const;
-    const std::string &getIndex() const;
-    const std::vector<HTTP_METHOD> &getHTTPMethods() const;
+    int getMaxBodySize(void) const;
+    const std::string &getRoute(void) const;
+    const std::string &getRoot(void) const;
+    const std::string &getIndex(void) const;
+    const std::vector<HTTP_METHOD> &getHTTPMethods(void) const;
 
 private:
     int _max_body_size;
