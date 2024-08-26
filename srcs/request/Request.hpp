@@ -14,8 +14,8 @@ private:
 public:
     Request(const HttpMethod method, const std::string &path, const std::string &httpVersion, const std::string &host);
     Request(const Request &other);
-    static Request fromString(std::string str);
-    HttpMethod getMethod(void) const;
+    static Request fromString(std::string &str);
+    const HttpMethod &getMethod(void) const;
     const std::string &getPath(void) const;
     const std::string &getHost(void) const;
 };

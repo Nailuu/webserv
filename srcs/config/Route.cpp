@@ -101,6 +101,20 @@ const std::vector<HttpMethod> &Route::getHTTPMethods(void) const
     return (this->_accepted_http_methods);
 }
 
+bool Route::supportMethod(const HttpMethod &method) const
+{
+    std::vector<HttpMethod>::const_iterator it = _accepted_http_methods.begin();
+
+    for (; it != _accepted_http_methods.end(); it++)
+    {
+        if (it->getKey() == method.getKey()) {
+            return (true);
+        }
+    }
+
+    return (false);
+}
+
 void Route::stringToInt(const std::string &str, int &result, const std::string &context)
 {
     std::stringstream ss(str);

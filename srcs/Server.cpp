@@ -18,6 +18,7 @@ void *run(void *ptr)
             break;
 
         server->readCheck();
+        server->writeCheck();
     }
 
     std::cout << "[" << *server << "]" << " terminé !" << std::endl;
@@ -85,6 +86,7 @@ void Server::prepareFds(void)
 {
     // Reset FDS
     FD_ZERO(&_readFds);
+    FD_ZERO(&_writeFds);
 
     // Put stopPipe
     FD_SET(_stopPipe[0], &_readFds);
@@ -92,16 +94,21 @@ void Server::prepareFds(void)
     // Put serverFd
     FD_SET(_serverFd, &_readFds);
 
-    std::map<int, struct sockaddr_in>::iterator it = _clients.begin();
+    std::map<int, Client*>::iterator it = _clients.begin();
 
     // Put all clients fd
     for (; it != _clients.end(); it++)
+    {
         FD_SET((*it).first, &_readFds);
+        if (!(*it).second->isReceiving()) {
+            FD_SET((*it).first, &_writeFds);
+        }
+    }
 }
 
 bool Server::waitForUpdate(void)
 {
-    if (select(_maxFd + 1, &_readFds, NULL, NULL, NULL) < 0)
+    if (select(_maxFd + 1, &_readFds, &_writeFds, NULL, NULL) < 0)
         return false;
 
     return (!FD_ISSET(_stopPipe[0], &_readFds));
@@ -116,92 +123,80 @@ bool Server::newClientCheck(void)
     struct sockaddr_in infos;
     socklen_t infos_len = sizeof(infos);
 
-    int client = accept(_serverFd, (struct sockaddr *)&infos, &infos_len);
+    int fd_client = accept(_serverFd, (struct sockaddr *)&infos, &infos_len);
 
-    if (client == -1)
+    if (fd_client == -1)
         return (false);
 
-    if (client > _maxFd)
-        _maxFd = client;
+    if (fd_client > _maxFd)
+        _maxFd = fd_client;
 
-    _clients.insert(std::make_pair(client, infos));
+    _clients.insert(std::make_pair(fd_client, new Client(fd_client)));
     return (true);
 }
 
 void Server::readCheck(void)
 {
-    std::map<int, struct sockaddr_in>::iterator it = _clients.begin();
+    std::map<int, Client*>::iterator it = _clients.begin();
 
-    std::vector<std::map<int, struct sockaddr_in>::iterator> removed;
+    std::vector<std::map<int, Client*>::iterator> removed;
 
     // iterate all clients and check if we have received something
     for (; it != _clients.end(); it++)
     {
-        std::pair<int, struct sockaddr_in> client = *it;
+        std::pair<int, Client*> client = *it;
 
         if (!FD_ISSET(client.first, &_readFds))
             continue;
 
-        bzero(_buffer, sizeof(_buffer));
-
-        if (read(client.first, _buffer, sizeof(_buffer)) <= 0)
-        {
-            close(client.first);
+        try {
+            if (!client.second->onReceive()) {
+                client.second->onFinishReceiving(_config);
+            }
+        } catch (std::exception &e) {
             removed.push_back(it);
-            continue;
-        }
-
-        try
-        {
-            Request req = Request::fromString(_buffer);
-
-            // Output for demonstration
-            std::cout << "Request Method: " << req.getMethod() << std::endl;
-            std::cout << "Request Path: " << req.getPath() << std::endl;
-            std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
-            std::cout << "Host: " << req.getHost() << std::endl;
-
-            std::map<std::string, std::string>::const_iterator it = req.getFields().begin();
-
-            for (; it != req.getFields().end(); it++)
-            {
-                std::pair<std::string, std::string> info = *it;
-
-                std::cout << info.first << ": " << info.second << std::endl;
-            }
-
-            std::ostringstream path;
-
-            if (req.getPath().at(req.getPath().size() - 1) == '/') {
-                path << _config.getRoot() << "/" << _config.getIndex();
-            } else {
-                path << _config.getRoot() << req.getPath();
-            }
-
-            std::cout << "Path: " << path.str() << std::endl;
-
-            try {
-                Response res = Response::getFileResponse(path.str());
-                const std::string res_str = res.build();
-
-                // TODO: Non-blocking write
-                write(client.first, res_str.c_str(), res_str.length());
-            } catch (const std::exception &e) {
-                Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
-
-                const std::string res_str = res.build();
-
-                // TODO: Non-blocking write
-                write(client.first, res_str.c_str(), res_str.length());
-            }
-        }
-        catch (std::exception &e)
-        {
+            client.second->onStop();
+            delete (client.second);
             std::cerr << e.what() << std::endl;
         }
     }
 
-    std::vector<std::map<int, struct sockaddr_in>::iterator>::iterator it2 = removed.begin();
+    std::vector<std::map<int, Client*>::iterator>::iterator it2 = removed.begin();
+
+    for (; it2 != removed.end(); it2++)
+    {
+        _clients.erase(*it2);
+    }
+}
+
+void Server::writeCheck(void)
+{
+    std::map<int, Client*>::iterator it = _clients.begin();
+
+    std::vector<std::map<int, Client*>::iterator> removed;
+
+    // iterate all clients and check if we have received something
+    for (; it != _clients.end(); it++)
+    {
+        std::pair<int, Client*> client = *it;
+
+        if (!FD_ISSET(client.first, &_writeFds))
+            continue;
+
+        try {
+            if (client.second->onSend()) {
+                continue ;
+            }
+        } catch (std::exception &e) {
+            std::cerr << e.what() << std::endl;
+        }
+
+        removed.push_back(it);
+        client.second->onStop();
+        delete (client.second);
+    }
+
+    std::vector<std::map<int, Client*>::iterator>::iterator it2 = removed.begin();
 
     for (; it2 != removed.end(); it2++)
     {
@@ -211,10 +206,13 @@ void Server::readCheck(void)
 
 void Server::closeAll(void)
 {
-    std::map<int, struct sockaddr_in>::iterator it = _clients.begin();
+    std::map<int, Client*>::iterator it = _clients.begin();
 
-    while (it != _clients.end())
-        close((*it++).first);
+    for (; it != _clients.end(); it++)
+    {
+        close((*it).first);
+        delete ((*it).second);
+    }
 
     close(_stopPipe[0]);
     close(_stopPipe[1]);

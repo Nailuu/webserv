@@ -19,7 +19,7 @@ const std::string Request::extractAndValidate(std::string &str, const std::strin
     return result;
 }
 
-Request Request::fromString(std::string str)
+Request Request::fromString(std::string &str)
 {
     std::string tmp = extractAndValidate(str, " ");
     HttpMethod method;
@@ -63,7 +63,7 @@ Request Request::fromString(std::string str)
     return req;
 }
 
-HttpMethod Request::getMethod(void) const
+const HttpMethod &Request::getMethod(void) const
 {
     return (this->_method);
 }

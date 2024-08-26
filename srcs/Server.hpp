@@ -15,6 +15,7 @@
 #include "config/ServerConfig.hpp"
 #include "request/Request.hpp"
 #include "request/Response.hpp"
+#include "Client.hpp"
 
 class Server
 {
@@ -26,17 +27,18 @@ public:
     bool waitForUpdate(void);
     bool newClientCheck(void);
     void readCheck(void);
+    void writeCheck(void);
     void closeAll(void);
     void stop(void);
     const ServerConfig& getConfig() const;
 
 private:
     const ServerConfig& _config;
-    char _buffer[4096];
     int _serverFd, _maxFd;
     int _stopPipe[2];
     fd_set _readFds;
-    std::map<int, struct sockaddr_in> _clients;
+    fd_set _writeFds;
+    std::map<int, Client*> _clients;
     pthread_t _thread;
     
     class ServerException : public std::exception

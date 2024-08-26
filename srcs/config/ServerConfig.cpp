@@ -127,6 +127,30 @@ const std::vector<Route> &ServerConfig::getRoutes(void) const
     return (this->_routes);
 }
 
+const Route *ServerConfig::getRoute(const std::string &path) const
+{
+    if (_routes.empty()) {
+        throw ServerConfigException("No route was registered");
+    }
+
+    std::vector<Route>::const_iterator it = _routes.begin();
+    const Route *lastRoute = NULL;
+
+    for (; it != _routes.end(); it++)
+    {
+        if (startsWith(path, it->getRoute()) && (!lastRoute
+            || it->getRoute().size() > lastRoute->getRoute().size())) {
+            lastRoute = &(*it);
+        }
+    }
+
+    if (!lastRoute) {
+        throw ServerConfigException("No route was found");
+    }
+
+    return (lastRoute);
+}
+
 void ServerConfig::validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory)
 {
     bool exist = Pair::exist(key, pairs);
