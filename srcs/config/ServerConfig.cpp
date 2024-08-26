@@ -144,7 +144,9 @@ const Route *ServerConfig::getRoute(const std::string &path) const
 
     for (; it != _routes.end(); it++)
     {
-        if (startsWith(path, it->getRoute()) && (!lastRoute
+        std::string route = (it->getRoute().at(it->getRoute().size() - 1) == '/')
+            ? it->getRoute() : it->getRoute() + "/";
+        if (startsWith(path, route) && (!lastRoute
             || it->getRoute().size() > lastRoute->getRoute().size())) {
             lastRoute = &(*it);
         }
