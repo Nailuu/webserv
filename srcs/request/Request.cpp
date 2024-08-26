@@ -1,9 +1,9 @@
 #include "Request.hpp"
 #include "../enum/HttpMethod.hpp"
 
-Request::Request(const HttpMethod method, const std::string &route, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _route(route), _host(host) {}
+Request::Request(const HttpMethod method, const std::string &path, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _path(path), _host(host) {}
 
-Request::Request(const Request &other) : HTTPPayload(other), _method(other._method), _route(other._route), _host(other._host) {}
+Request::Request(const Request &other) : HTTPPayload(other), _method(other._method), _path(other._path), _host(other._host) {}
 
 const std::string Request::extractAndValidate(std::string &str, const std::string &delimiter)
 {
@@ -71,9 +71,9 @@ const HttpMethod &Request::getMethod(void) const
     return (this->_method);
 }
 
-const std::string &Request::getRoute(void) const
+const std::string &Request::getPath(void) const
 {
-    return (this->_route);
+    return (this->_path);
 }
 
 const std::string &Request::getHost(void) const

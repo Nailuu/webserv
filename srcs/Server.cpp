@@ -153,86 +153,12 @@ void Server::readCheck(void)
             if (!client.second->onReceive()) {
                 client.second->onFinishReceiving(_config);
             }
-        } catch (std::exception &e) {
-            removed.push_back(it);
-<<<<<<< HEAD
-            client.second->onStop();
-            delete (client.second);
-=======
             continue;
-        }
+        } catch (std::exception &e) {}
 
-        try
-        {
-            Request req = Request::fromString(_buffer);
-
-            // Handle request route
-            const std::string &route = req.getRoute();
-            if (!this->_config.routeExists(route))
-            {
-                // TODO: Error 404
-            }
-
-            // Get config for this route
-            const Route &config = this->_config.getRoute(route);
-
-            HttpMethod method = req.getMethod();
-            if (!config.isHTTPMethodAuthorized(method))
-            {
-                // TODO: Error 405
-            }
-
-            // Output for demonstration
-            std::cout << "Request Method: " << method.getKey() << std::endl;
-            std::cout << "Request Route: " << route << std::endl;
-            std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
-            std::cout << "Host: " << req.getHost() << std::endl;
-
-            std::map<std::string, std::string>::const_iterator it = req.getFields().begin();
-
-            for (; it != req.getFields().end(); it++)
-            {
-                std::pair<std::string, std::string> info = *it;
-
-                std::cout << info.first << ": " << info.second << std::endl;
-            }
-
-            std::ostringstream path;
-
-            if (req.getRoute().at(req.getRoute().size() - 1) == '/')
-            {
-                path << _config.getRoot() << "/" << _config.getIndex();
-            }
-            else
-            {
-                path << _config.getRoot() << req.getRoute();
-            }
-
-            std::cout << "Path: " << path.str() << std::endl;
-
-            try
-            {
-                Response res = Response::getFileResponse(path.str());
-                const std::string res_str = res.build();
-
-                // TODO: Non-blocking write
-                write(client.first, res_str.c_str(), res_str.length());
-            }
-            catch (const std::exception &e)
-            {
-                Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
-
-                const std::string res_str = res.build();
-
-                // TODO: Non-blocking write
-                write(client.first, res_str.c_str(), res_str.length());
-            }
-        }
-        catch (std::exception &e)
-        {
->>>>>>> 2bb5dc3c4f4075f3943a70abf9969e541f9c89d5
-            std::cerr << e.what() << std::endl;
-        }
+        removed.push_back(it);
+        client.second->onStop();
+        delete (client.second);
     }
 
     std::vector<std::map<int, Client*>::iterator>::iterator it2 = removed.begin();
@@ -259,11 +185,9 @@ void Server::writeCheck(void)
 
         try {
             if (client.second->onSend()) {
-                continue ;
+                continue;
             }
-        } catch (std::exception &e) {
-            std::cerr << e.what() << std::endl;
-        }
+        } catch (std::exception &e) {}
 
         removed.push_back(it);
         client.second->onStop();

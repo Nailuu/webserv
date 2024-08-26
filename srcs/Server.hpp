@@ -15,11 +15,7 @@
 #include "config/ServerConfig.hpp"
 #include "request/Request.hpp"
 #include "request/Response.hpp"
-<<<<<<< HEAD
 #include "Client.hpp"
-=======
-#include "enum/HttpMethod.hpp"
->>>>>>> 2bb5dc3c4f4075f3943a70abf9969e541f9c89d5
 
 class Server
 {
