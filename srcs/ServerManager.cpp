@@ -16,17 +16,11 @@ void ServerManager::stopServers(void)
     for (; it != _servers.end(); it++)
     {
         Server *server = *it;
-        try
-        {
-            std::cout << "Calling stop() on server." << std::endl;
+        try {
             server->stop();
-            std::cout << "Finished stop() on server." << std::endl;
-        }
-        catch (std::exception &e)
-        {
+        } catch (std::exception &e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }
-        std::cout << "Deleting server." << std::endl;
         delete server;
     }
 }
@@ -61,9 +55,8 @@ void ServerManager::run(const std::string &path)
         }
         catch (std::exception &e)
         {
-            std::cout << "j'ai catch ici bg" << std::endl;
-            std::cerr << "Error: [" << server << "] " << e.what() << std::endl;
             delete server;
+            throw;
         }
     }
 }

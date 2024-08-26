@@ -3,7 +3,7 @@
 Server::Server(const ServerConfig &config) : _config(config)
 {
     std::cout << "Launching Server on port " << _config.getPort() << std::endl;
-    std::cout << "Host of first server " << _config.getHost() << std::endl;
+    std::cout << "Host of server " << _config.getHost() << std::endl;
 }
 
 void *run(void *ptr)
@@ -12,16 +12,10 @@ void *run(void *ptr)
 
     while (true)
     {
-        std::cout << "début boucle !" << std::endl;
-
         server->prepareFds();
-
-        std::cout << "fds préparés !" << std::endl;
 
         if (!server->waitForUpdate() || !server->newClientCheck())
             break;
-
-        std::cout << "tout s'est bien passé !!" << std::endl;
 
         server->readCheck();
     }
@@ -130,7 +124,7 @@ bool Server::newClientCheck(void)
     if (client > _maxFd)
         _maxFd = client;
 
-    _clients.insert(std::map<int, struct sockaddr_in>::value_type(client, infos));
+    _clients.insert(std::make_pair(client, infos));
     return (true);
 }
 
@@ -192,14 +186,30 @@ void Server::readCheck(void)
                 std::cout << info.first << ": " << info.second << std::endl;
             }
 
-            Response res("HTTP/1.1", NotFound);
-            res.setContentFile("data/404.html");
-            res.addField("Connection", "close");
+            std::ostringstream path;
 
-            const std::string res_str = res.build();
+            if (req.getPath().at(req.getPath().size() - 1) == '/') {
+                path << _config.getRoot() << "/" << _config.getIndex();
+            } else {
+                path << _config.getRoot() << req.getPath();
+            }
 
-            // TODO: Non-blocking write
-            write(client.first, res_str.c_str(), res_str.length());
+            std::cout << "Path: " << path.str() << std::endl;
+
+            try {
+                Response res = Response::getFileResponse(path.str());
+                const std::string res_str = res.build();
+
+                // TODO: Non-blocking write
+                write(client.first, res_str.c_str(), res_str.length());
+            } catch (const std::exception &e) {
+                Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
+
+                const std::string res_str = res.build();
+
+                // TODO: Non-blocking write
+                write(client.first, res_str.c_str(), res_str.length());
+            }
         }
         catch (std::exception &e)
         {

@@ -25,7 +25,7 @@ public:
     const std::string &getName(void) const;
     const std::string &getRoot(void) const;
     const std::string &getIndex(void) const;
-    const std::vector<HTTP_METHOD> &getHTTPMethods(void) const;
+    const std::vector<HttpMethod> &getHTTPMethods(void) const;
     const std::vector<Route> &getRoutes(void) const;
     bool routeExists(const std::string& route) const;
     const Route& getRoute(const std::string& route) const;
@@ -37,7 +37,7 @@ private:
     std::string _name;
     std::string _root;
     std::string _index;
-    std::vector<HTTP_METHOD> _accepted_http_methods;
+    std::vector<HttpMethod> _accepted_http_methods;
     std::vector<Route> _routes;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);

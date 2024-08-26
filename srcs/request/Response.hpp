@@ -10,21 +10,25 @@
 
 #include "../global.hpp"
 #include "HTTPPayload.hpp"
+#include "../enum/MimeType.hpp"
+#include "../enum/HttpStatusCode.hpp"
 
 class Response : public HTTPPayload
 {
 private:
-    const HttpStatusCode _statusCode;
-    const std::string _statusMessage;
+    const HttpStatusCode &_statusCode;
     std::string _content;
+    MimeType _mimeType;
     const std::string getCurrentTimeInHttpFormat() const;
 
 public:
-    Response(const std::string &httpVersion, const HttpStatusCode statusCode);
+    Response(const std::string &httpVersion, const HttpStatusCode &statusCode);
     Response(const Response &other);
-    void setContent(const std::string &content);
+    Response operator=(const Response &other);
+    void setContent(const std::string &content, const MimeType &mimeType);
     void setContentFile(const std::string &path);
-    HttpStatusCode getStatusCode(void) const;
-    const std::string &getStatusMessage(void) const;
+    const HttpStatusCode &getStatusCode(void) const;
+    static const Response getFileResponse(const std::string &path);
+    static const Response getErrorResponse(const HttpStatusCode &status, const std::string &path);
     const std::string build(void) const;
 };
