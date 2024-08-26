@@ -107,9 +107,9 @@ const std::vector<HttpMethod> &Route::getHTTPMethods(void) const
     return (this->_accepted_http_methods);
 }
 
-bool Route::isHTTPMethodAuthorized(HTTP_METHOD method) const
+bool Route::isHTTPMethodAuthorized(HttpMethod method) const
 {
-    std::vector<HTTP_METHOD>::const_iterator it = this->_accepted_http_methods.begin();
+    std::vector<HttpMethod>::const_iterator it = this->_accepted_http_methods.begin();
     for (; it != this->_accepted_http_methods.end(); it++)
     {
         if ((*it) == method)

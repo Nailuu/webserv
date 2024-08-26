@@ -156,23 +156,23 @@ void Server::readCheck(void)
             Request req = Request::fromString(_buffer);
 
             // Handle request route
-            const std::string& route = req.getRoute();
+            const std::string &route = req.getRoute();
             if (!this->_config.routeExists(route))
             {
                 // TODO: Error 404
             }
 
             // Get config for this route
-            const Route& config = this->_config.getRoute(route);
+            const Route &config = this->_config.getRoute(route);
 
-            HTTP_METHOD method = req.getMethod();
+            HttpMethod method = req.getMethod();
             if (!config.isHTTPMethodAuthorized(method))
             {
                 // TODO: Error 405
             }
 
             // Output for demonstration
-            std::cout << "Request Method: " << getStringFromHttpMethod(method) << std::endl;
+            std::cout << "Request Method: " << method.getKey() << std::endl;
             std::cout << "Request Route: " << route << std::endl;
             std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
             std::cout << "Host: " << req.getHost() << std::endl;
@@ -188,21 +188,27 @@ void Server::readCheck(void)
 
             std::ostringstream path;
 
-            if (req.getPath().at(req.getPath().size() - 1) == '/') {
+            if (req.getRoute().at(req.getRoute().size() - 1) == '/')
+            {
                 path << _config.getRoot() << "/" << _config.getIndex();
-            } else {
-                path << _config.getRoot() << req.getPath();
+            }
+            else
+            {
+                path << _config.getRoot() << req.getRoute();
             }
 
             std::cout << "Path: " << path.str() << std::endl;
 
-            try {
+            try
+            {
                 Response res = Response::getFileResponse(path.str());
                 const std::string res_str = res.build();
 
                 // TODO: Non-blocking write
                 write(client.first, res_str.c_str(), res_str.length());
-            } catch (const std::exception &e) {
+            }
+            catch (const std::exception &e)
+            {
                 Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
 
                 const std::string res_str = res.build();

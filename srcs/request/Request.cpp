@@ -1,7 +1,7 @@
 #include "Request.hpp"
 #include "../enum/HttpMethod.hpp"
 
-Request::Request(const HttpMethod method, const std::string &path, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _route(route), _host(host) {}
+Request::Request(const HttpMethod method, const std::string &route, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _route(route), _host(host) {}
 
 Request::Request(const Request &other) : HTTPPayload(other), _method(other._method), _route(other._route), _host(other._host) {}
 
@@ -24,9 +24,12 @@ Request Request::fromString(std::string str)
     std::string tmp = extractAndValidate(str, " ");
     HttpMethod method;
 
-    try {
+    try
+    {
         method = HttpMethod::get(tmp);
-    } catch (const HttpMethod::EnumException &e) {
+    }
+    catch (const HttpMethod::EnumException &e)
+    {
         throw HTTPPayloadException("Invalid Method: '" + tmp + "'");
     }
 
@@ -49,7 +52,7 @@ Request Request::fromString(std::string str)
     }
     host = host.substr(6); // remove "Host: "
 
-    Request req((HTTP_METHOD)method, path, httpVersion, host);
+    Request req((HttpMethod)method, route, httpVersion, host);
 
     // Traitement des en-têtes
     while (str.length() > 0 && (str[0] != '\r' && str[0] != '\n'))
