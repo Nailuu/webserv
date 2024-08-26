@@ -13,11 +13,26 @@ Client::Client(const Client &other) : _fd(other._fd), _receive(other._receive)
 void Client::onGetRequest(const Request &req, const Route *route)
 {
     std::ostringstream path;
+    std::ostringstream tempPath;
 
-    if (req.getPath() == route->getRoute()) {
-        path << route->getRoot() << "/" << route->getIndex();
+    if (req.getPath().size() > 1 && req.getPath().at(req.getPath().size() - 1) == '/') {
+        tempPath << req.getPath().substr(0, req.getPath().size() - 1);
     } else {
-        path << route->getRoot() << "/" << req.getPath().substr(route->getRoute().size());
+        tempPath << req.getPath();
+    }
+
+    std::string pathStr = tempPath.str();
+
+    path << route->getRoot();
+
+    if (pathStr == route->getRoute()) {
+        path << "/" << route->getIndex();
+    } else {
+        pathStr = pathStr.substr(route->getRoute().size());
+        if (pathStr.at(0) != '/') {
+            path << "/";
+        }
+        path << pathStr;
     }
 
     std::cout << "Path: " << path.str() << std::endl;
