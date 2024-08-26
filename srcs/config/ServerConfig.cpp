@@ -9,11 +9,17 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
     // PORT
     this->validate("port", pairs, tmp);
     this->stringToInt(tmp, this->_port, "port");
+    if (this->_port < 0 || this->_port > 65535)
+        throw ServerConfigException("Port is out of range (0-65535)");
 
     // MAX BODY SIZE
     this->validate("max_body_size", pairs, tmp, false);
     if (!tmp.empty())
+    {
         this->stringToInt(tmp, this->_max_body_size, "max_body_size");
+        if (this->_max_body_size < 0)
+            throw ServerConfigException("Max body size must be a positive number");
+    }
 
     // HOST
     this->validate("host", pairs, this->_host);

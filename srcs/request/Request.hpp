@@ -7,7 +7,7 @@ class Request : public HTTPPayload
 {
 private:
     const HttpMethod _method;
-    const std::string _path;
+    const std::string _route;
     const std::string _host;
     static const std::string extractAndValidate(std::string &str, const std::string &delimiter);
 

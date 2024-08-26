@@ -24,7 +24,7 @@ public:
     const std::string &getRoot(void) const;
     const std::string &getIndex(void) const;
     const std::vector<HttpMethod> &getHTTPMethods(void) const;
-    bool supportMethod(const HttpMethod &method) const;
+    bool isHTTPMethodAuthorized(HttpMethod method) const;
 
 private:
     int _max_body_size;

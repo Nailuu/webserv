@@ -60,7 +60,7 @@ void Client::onFinishReceiving(const ServerConfig &config)
         return ;
     }
 
-    if (!route->supportMethod(req.getMethod())) {
+    if (!route->isHTTPMethodAuthorized(req.getMethod())) {
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED, "data/404.html");
         _write = res.build();
         return ;

@@ -1,9 +1,9 @@
 #include "Request.hpp"
 #include "../enum/HttpMethod.hpp"
 
-Request::Request(const HttpMethod method, const std::string &path, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _path(path), _host(host) {}
+Request::Request(const HttpMethod method, const std::string &route, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _route(route), _host(host) {}
 
-Request::Request(const Request &other) : HTTPPayload(other), _method(other._method), _path(other._path), _host(other._host) {}
+Request::Request(const Request &other) : HTTPPayload(other), _method(other._method), _route(other._route), _host(other._host) {}
 
 const std::string Request::extractAndValidate(std::string &str, const std::string &delimiter)
 {
@@ -24,16 +24,19 @@ Request Request::fromString(std::string &str)
     std::string tmp = extractAndValidate(str, " ");
     HttpMethod method;
 
-    try {
+    try
+    {
         method = HttpMethod::get(tmp);
-    } catch (const HttpMethod::EnumException &e) {
+    }
+    catch (const HttpMethod::EnumException &e)
+    {
         throw HTTPPayloadException("Invalid Method: '" + tmp + "'");
     }
 
-    std::string path = extractAndValidate(str, " ");
-    if (!startsWith(path, "/"))
+    std::string route = extractAndValidate(str, " ");
+    if (!startsWith(route, "/"))
     {
-        throw HTTPPayloadException("Invalid Path: '" + path + "'");
+        throw HTTPPayloadException("Invalid Route: '" + route + "'");
     }
 
     std::string httpVersion = extractAndValidate(str, "\n");
@@ -49,7 +52,7 @@ Request Request::fromString(std::string &str)
     }
     host = host.substr(6); // remove "Host: "
 
-    Request req(method, path, httpVersion, host);
+    Request req((HttpMethod)method, route, httpVersion, host);
 
     // Traitement des en-têtes
     while (str.length() > 0 && (str[0] != '\r' && str[0] != '\n'))
@@ -68,9 +71,9 @@ const HttpMethod &Request::getMethod(void) const
     return (this->_method);
 }
 
-const std::string &Request::getPath(void) const
+const std::string &Request::getRoute(void) const
 {
-    return (this->_path);
+    return (this->_route);
 }
 
 const std::string &Request::getHost(void) const

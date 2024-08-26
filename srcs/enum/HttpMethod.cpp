@@ -68,3 +68,8 @@ HttpMethod HttpMethod::operator=(const HttpMethod &other)
 
     return (*this);
 }
+
+bool HttpMethod::operator==(const HttpMethod &other) const
+{
+    return (this->_key == other._key);
+}

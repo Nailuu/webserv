@@ -16,11 +16,17 @@ void Route::update(const std::vector<Pair> &pairs)
 
     // ROUTE
     this->validate("route", pairs, this->_route);
+    if (this->_route.at(0) != '/')
+        throw RouteException("Route must start with '/': '" + this->_route + "'");
 
     // MAX BODY SIZE
     this->validate("max_body_size", pairs, tmp, false);
     if (!tmp.empty())
+    {
         this->stringToInt(tmp, this->_max_body_size, "max_body_size");
+        if (this->_max_body_size < 0)
+            throw RouteException("Max body size must be a positive number");
+    }
 
     // ROOT
     this->validate("root", pairs, tmp, false);
@@ -101,6 +107,7 @@ const std::vector<HttpMethod> &Route::getHTTPMethods(void) const
     return (this->_accepted_http_methods);
 }
 
+<<<<<<< HEAD
 bool Route::supportMethod(const HttpMethod &method) const
 {
     std::vector<HttpMethod>::const_iterator it = _accepted_http_methods.begin();
@@ -110,6 +117,15 @@ bool Route::supportMethod(const HttpMethod &method) const
         if (it->getKey() == method.getKey()) {
             return (true);
         }
+=======
+bool Route::isHTTPMethodAuthorized(HttpMethod method) const
+{
+    std::vector<HttpMethod>::const_iterator it = this->_accepted_http_methods.begin();
+    for (; it != this->_accepted_http_methods.end(); it++)
+    {
+        if ((*it) == method)
+            return (true);
+>>>>>>> 2bb5dc3c4f4075f3943a70abf9969e541f9c89d5
     }
 
     return (false);
