@@ -13,6 +13,9 @@ class Client
         char _buffer[MAX_READ + 1];
         const int _fd;
         bool _receive;
+        int _dataIndex;
+        int _dataRead;
+        Request _request;
         std::ostringstream _ossRead;
         std::string _write;
         void onGetRequest(const Request &req, const Route *route);
