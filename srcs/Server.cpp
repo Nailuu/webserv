@@ -161,9 +161,25 @@ void Server::readCheck(void)
         {
             Request req = Request::fromString(_buffer);
 
+            // Handle request route
+            const std::string& route = req.getRoute();
+            if (!this->_config.routeExists(route))
+            {
+                // TODO: Error 404
+            }
+
+            // Get config for this route
+            const Route& config = this->_config.getRoute(route);
+
+            HTTP_METHOD method = req.getMethod();
+            if (!config.isHTTPMethodAuthorized(method))
+            {
+                // TODO: Error 405
+            }
+
             // Output for demonstration
-            std::cout << "Request Method: " << req.getMethod() << std::endl;
-            std::cout << "Request Path: " << req.getPath() << std::endl;
+            std::cout << "Request Method: " << getStringFromHttpMethod(method) << std::endl;
+            std::cout << "Request Route: " << route << std::endl;
             std::cout << "HTTP Version: " << req.getHttpVersion() << std::endl;
             std::cout << "Host: " << req.getHost() << std::endl;
 

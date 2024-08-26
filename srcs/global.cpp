@@ -7,7 +7,7 @@ bool startsWith(const std::string &str, const std::string &prefix)
 
 HTTP_METHOD getHttpMethodFromString(const std::string &str)
 {
-    for (unsigned int i = 0; i < sizeof(HTTP_METHODS) / sizeof(char *); i++)
+    for (unsigned int i = 0; i < 3; i++)
     {
         if (str == std::string(HTTP_METHODS[i]))
             return ((HTTP_METHOD)i);
@@ -24,8 +24,6 @@ std::string getStringFromHttpMethod(HTTP_METHOD method)
         return ("GET");
     case POST:
         return ("POST");
-    case PUT:
-        return ("PUT");
     case DELETE:
         return ("DELETE");
     default:

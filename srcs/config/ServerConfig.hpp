@@ -27,6 +27,8 @@ public:
     const std::string &getIndex(void) const;
     const std::vector<HTTP_METHOD> &getHTTPMethods(void) const;
     const std::vector<Route> &getRoutes(void) const;
+    bool routeExists(const std::string& route) const;
+    const Route& getRoute(const std::string& route) const;
 
 private:
     int _port;

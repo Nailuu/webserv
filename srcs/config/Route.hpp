@@ -23,6 +23,7 @@ public:
     const std::string &getRoot(void) const;
     const std::string &getIndex(void) const;
     const std::vector<HTTP_METHOD> &getHTTPMethods(void) const;
+    bool isHTTPMethodAuthorized(HTTP_METHOD method) const;
 
 private:
     int _max_body_size;
