@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include "request/Response.hpp"
+#include <cstdio>
 
 Client::Client(const int fd) : _fd(fd), _receive(true), _dataIndex(0), _dataRead(0), _write("")  {}
 
@@ -10,42 +11,39 @@ Client::Client(const Client &other) : _fd(other._fd), _receive(other._receive), 
     _ossRead << other._ossRead.str();
 }
 
-void Client::onGetRequest(const Request &req, const Route *route)
+void Client::onGetRequest(const Request &req, const std::string &path)
 {
+    (void)req;
     this->_receive = false;
 
-    std::ostringstream path;
-    std::ostringstream tempPath;
-
-    if (req.getPath().size() > 1 && req.getPath().at(req.getPath().size() - 1) == '/') {
-        tempPath << req.getPath().substr(0, req.getPath().size() - 1);
-    } else {
-        tempPath << req.getPath();
-    }
-
-    std::string pathStr = tempPath.str();
-
-    path << route->getRoot();
-
-    if (pathStr == route->getRoute()) {
-        path << "/" << route->getIndex();
-    } else {
-        pathStr = pathStr.substr(route->getRoute().size());
-        if (pathStr.at(0) != '/') {
-            path << "/";
-        }
-        path << pathStr;
-    }
-
-    std::cout << "Path: " << path.str() << std::endl;
-
     try {
-        Response res = Response::getFileResponse(path.str());
+        Response res = Response::getFileResponse(path);
         _write = res.build();
     } catch (const std::exception &e) {
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
         _write = res.build();
     }
+}
+
+void Client::onDeleteRequest(const Request &req, const std::string &path)
+{
+    (void)req;
+    this->_receive = false;
+
+    std::ifstream file;
+    file.open(path.c_str());
+
+    if (file.fail() || (file.close(), remove(path.c_str())))
+    {
+        Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
+        _write = res.build();
+        return;
+    }
+
+    Response res = Response("HTTP/1.1", HttpStatusCode::OK);
+    res.addField("Connection", "close");
+    res.setContent("", MimeType::TEXT_PLAIN);
+    _write = res.build();
 }
 
 void Client::onFinishReceiving(const ServerConfig &config)
@@ -83,8 +81,35 @@ void Client::onFinishReceiving(const ServerConfig &config)
         return ;
     }
 
+    std::ostringstream path;
+    std::ostringstream tempPath;
+
+    if (_request.getPath().size() > 1 && _request.getPath().at(_request.getPath().size() - 1) == '/') {
+        tempPath << _request.getPath().substr(0, _request.getPath().size() - 1);
+    } else {
+        tempPath << _request.getPath();
+    }
+
+    std::string pathStr = tempPath.str();
+
+    path << route->getRoot();
+
+    if (pathStr == route->getRoute()) {
+        path << "/" << route->getIndex();
+    } else {
+        pathStr = pathStr.substr(route->getRoute().size());
+        if (pathStr.at(0) != '/') {
+            path << "/";
+        }
+        path << pathStr;
+    }
+
+    std::cout << "Path: " << path.str() << std::endl;
+
     if (_request.getMethod().getKey() == HttpMethod::GET.getKey()) {
-        onGetRequest(_request, route);
+        onGetRequest(_request, path.str());
+    } else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey()) {
+        onDeleteRequest(_request, path.str());
     }
 }
 
