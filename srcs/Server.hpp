@@ -22,24 +22,18 @@ class Server
 public:
     Server(const ServerConfig &config);
     ~Server();
-    void prepareServer(void);
-    void prepareFds(void);
-    bool waitForUpdate(void);
-    bool newClientCheck(void);
-    void readCheck(void);
-    void writeCheck(void);
-    void closeAll(void);
-    void stop(void);
-    const ServerConfig& getConfig() const;
+    int prepareServer(void);
+    int getFd(void) const;
+    void addClient(int fd, Client *client);
+    void removeClient(std::map<int, Client*>::iterator pos);
+    std::map<int, Client*> &getClients(void);
+    void stopClients(void) const;
+    const ServerConfig& getConfig(void) const;
 
 private:
     const ServerConfig& _config;
-    int _serverFd, _maxFd;
-    int _stopPipe[2];
-    fd_set _readFds;
-    fd_set _writeFds;
+    int _serverFd;
     std::map<int, Client*> _clients;
-    pthread_t _thread;
     
     class ServerException : public std::exception
     {
