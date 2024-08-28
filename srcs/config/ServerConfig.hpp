@@ -13,6 +13,7 @@
 #include "Pair.hpp"
 #include "JSON.hpp"
 #include "VectorDebugger.hpp"
+#include "CGI.hpp"
 
 class ServerConfig
 {
@@ -38,6 +39,7 @@ private:
     std::string _index;
     std::vector<HttpMethod> _accepted_http_methods;
     std::vector<Route> _routes;
+    std::vector<CGI> _cgi;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 

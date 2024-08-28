@@ -19,5 +19,6 @@ public:
     static const HttpMethod &getByValue(const std::string &value);
     static const HttpMethod GET;
     static const HttpMethod POST;
+    static const HttpMethod PUT;
     static const HttpMethod DELETE;
 };

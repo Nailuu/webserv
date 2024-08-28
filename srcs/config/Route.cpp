@@ -3,6 +3,7 @@
 Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods)
 {
     this->_max_body_size = maxBodySize;
+    this->_directory = false;
     this->_route = route;
     this->_root = root;
     this->_index = index;
@@ -16,8 +17,18 @@ void Route::update(const std::vector<Pair> &pairs)
 
     // ROUTE
     this->validate("route", pairs, this->_route);
+
+    if (this->_route.at(this->_route.size() - 1) == '*')
+        this->_route.erase(this->_route.size() - 1);
+
     if (this->_route.at(0) != '/')
         throw RouteException("Route must start with '/': '" + this->_route + "'");
+
+    if (this->_route.at(this->_route.size() - 1) == '/' && this->_route.size() > 1)
+        this->_directory = true;
+
+    if (this->_directory && this->_route.size() == 2)
+        throw RouteException("Route is invalid: '" + this->_route + "'");
 
     // MAX BODY SIZE
     this->validate("max_body_size", pairs, tmp, false);
@@ -44,7 +55,7 @@ void Route::update(const std::vector<Pair> &pairs)
         this->_index = tmp;
 
         std::ifstream file;
-        std::string path = this->_root + "/" + this->_index;
+        std::string path = this->_root + (this->_root.at(this->_root.size() - 1) == '/' ? "" : "/") + this->_index;
 
         file.open(path.c_str());
 
@@ -66,9 +77,12 @@ void Route::update(const std::vector<Pair> &pairs)
             {
                 HttpMethod hm;
 
-                try {
+                try
+                {
                     hm = HttpMethod::get(*it);
-                } catch (const HttpMethod::EnumException &e) {
+                }
+                catch (const HttpMethod::EnumException &e)
+                {
                     throw RouteException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
                 }
 
@@ -163,7 +177,7 @@ std::ostream &operator<<(std::ostream &os, const Route &r)
 
     const std::vector<HttpMethod> methods = r.getHTTPMethods();
     for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
-        std::cout << (it == methods.begin() ? "" : ", ") << ((HttpMethod) *it).getKey();
+        std::cout << (it == methods.begin() ? "" : ", ") << ((HttpMethod)*it).getKey();
     os << "]" << std::endl;
 
     return (os);

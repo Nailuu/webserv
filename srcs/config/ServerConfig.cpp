@@ -55,10 +55,13 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
         for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
         {
             HttpMethod hm;
-            
-            try {
+
+            try
+            {
                 hm = HttpMethod::get(*it);
-            } catch (const HttpMethod::EnumException &e) {
+            }
+            catch (const HttpMethod::EnumException &e)
+            {
                 throw ServerConfigException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
             }
 
@@ -85,6 +88,22 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
 
                 this->_routes.push_back(r);
             }
+        }
+
+        // CGI
+        this->validate("cgi", pairs, tmp);
+
+        std::vector<std::string> cgis = JSON::getObjectsFromArray(tmp);
+        for (std::vector<std::string>::const_iterator it = cgis.begin(); it != cgis.end(); it++)
+        {
+            // Initialize CGI with default settings
+            CGI c(this->_root, this->_accepted_http_methods);
+
+            // Overwrite default settings
+            std::vector<Pair> p = JSON::getKeysAndValuesFromObject(*it);
+            c.update(p);
+
+            this->_cgi.push_back(c);
         }
     }
     catch (std::exception &e)
@@ -135,7 +154,8 @@ const std::vector<Route> &ServerConfig::getRoutes(void) const
 
 const Route *ServerConfig::getRoute(const std::string &path) const
 {
-    if (_routes.empty()) {
+    if (_routes.empty())
+    {
         throw ServerConfigException("No route was registered");
     }
 
@@ -145,14 +165,16 @@ const Route *ServerConfig::getRoute(const std::string &path) const
     for (; it != _routes.end(); it++)
     {
         std::string route = (it->getRoute().at(it->getRoute().size() - 1) == '/' || it->getRoute() == path)
-            ? it->getRoute() : it->getRoute() + "/";
-        if (startsWith(path, route) && (!lastRoute
-            || it->getRoute().size() > lastRoute->getRoute().size())) {
+                                ? it->getRoute()
+                                : it->getRoute() + "/";
+        if (startsWith(path, route) && (!lastRoute || it->getRoute().size() > lastRoute->getRoute().size()))
+        {
             lastRoute = &(*it);
         }
     }
 
-    if (!lastRoute) {
+    if (!lastRoute)
+    {
         throw ServerConfigException("No route was found");
     }
 
@@ -208,7 +230,7 @@ std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
 
     const std::vector<HttpMethod> methods = sc.getHTTPMethods();
     for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
-        std::cout << (it == methods.begin() ? "" : ", ") << (HttpMethod (*it)).getKey();
+        std::cout << (it == methods.begin() ? "" : ", ") << (HttpMethod(*it)).getKey();
     os << "]" << std::endl;
 
     os << "\n   Routes: " << std::endl;

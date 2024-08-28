@@ -28,6 +28,7 @@ public:
 
 private:
     int _max_body_size;
+    bool _directory;
     std::string _route;
     std::string _root;
     std::string _index;

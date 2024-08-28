@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <map>
 
-#define DEFAULT_MAX_BODY_SIZE 2000
+#define DEFAULT_MAX_BODY_SIZE 10000
 #define SERVER_NAME "Webserv/1.0.0"
 
 enum DATA_TYPES
