@@ -15,19 +15,8 @@ int main(int argc, char **argv)
     {
         // Launch ServerManager that will parse configuration file and manager servers
         ServerManager manager;
-        manager.run(argv[1]);
-
-        std::string input;
-
-        while (true)
-        {
-            std::getline(std::cin, input);
-
-            if (std::cin.eof() || !input.compare("stop"))
-                break;
-        }
-
-        manager.stopServers();
+        manager.init(argv[1]);
+        manager.run();
     }
     catch (std::exception &e)
     {

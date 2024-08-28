@@ -18,7 +18,8 @@ class Client
         Request _request;
         std::ostringstream _ossRead;
         std::string _write;
-        void onGetRequest(const Request &req, const Route *route);
+        void onGetRequest(const Request &req, const std::string &path);
+        void onDeleteRequest(const Request &req, const std::string &path);
     public:
         Client();
         Client(const int fd);
