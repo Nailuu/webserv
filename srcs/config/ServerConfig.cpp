@@ -231,21 +231,29 @@ const char *ServerConfig::ServerConfigException::what() const throw()
 
 std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
 {
-    os << "------------------------------------------" << std::endl
+    os << GREY << "------------------------------------------" << WHITE << std::endl
        << std::endl;
 
-    os << "   Name: " << (sc.getName().empty() ? "N/A" : sc.getName()) << std::endl;
-    os << "   Port: " << sc.getPort() << std::endl;
-    os << "   Host: " << sc.getHost() << std::endl;
-    os << "   Root folder: '" << sc.getRoot() << "'" << std::endl;
-    os << "   Index file: '" << sc.getIndex() << "'" << std::endl;
-    os << "   Maximum request body size: " << sc.getMaxBodySize() << std::endl;
-    os << "   Accepted HTTP methods: [";
+    os << "   Name: " << highlight(sc.getName().empty() ? "N/A" : sc.getName(), false) << std::endl;
+
+    std::ostringstream tmp;
+    tmp << sc.getPort();
+    os << "   Port: " << highlight(tmp.str(), false) << std::endl;
+
+    os << "   Host: " << highlight(sc.getHost(), false) << std::endl;
+    os << "   Root folder: " << highlight(sc.getRoot(), false) << std::endl;
+    os << "   Index file: " << highlight(sc.getIndex(), false) << std::endl;
+
+    tmp.str("");
+    tmp.clear();
+    tmp << sc.getMaxBodySize();
+    os << "   Maximum request body size: " << highlight(tmp.str(), false) << std::endl;
+    os << "   Accepted HTTP methods: ";
 
     const std::vector<HttpMethod> methods = sc.getHTTPMethods();
     for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
-        std::cout << (it == methods.begin() ? "" : ", ") << (HttpMethod(*it)).getKey();
-    os << "]" << std::endl;
+        std::cout << (it == methods.begin() ? "" : ", ") << highlight((HttpMethod(*it)).getKey(), false);
+    os << std::endl;
 
     os << "\n   Routes: " << std::endl;
     const std::vector<Route> routes = sc.getRoutes();

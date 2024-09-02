@@ -67,7 +67,7 @@ void ConfigParser::output(void) const
     for (std::vector<ServerConfig>::const_iterator it = this->_configs.begin(); it != this->_configs.end(); it++)
     {
         std::cout << (*it);
-        std::cout << ((it + 1) == this->_configs.end() ? "------------------------------------------\n\n" : "");
+        std::cout << ((it + 1) == this->_configs.end() ? (std::string(GREY) + "------------------------------------------\n\n" + std::string(WHITE)) : "");
     }
 }
 

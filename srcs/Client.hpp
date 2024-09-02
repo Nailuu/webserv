@@ -20,7 +20,7 @@ class Client
         Request _request;
         std::string _write;
         bool onHeaderReceived(const ServerConfig &config);
-        void onGetRequest(void);
+        void onGetRequest(const Route *route);
         void onDeleteRequest(void);
         void onPostRequest(void);
     public:

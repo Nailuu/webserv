@@ -25,14 +25,17 @@ Client Client::operator=(const Client &other)
     return (*this);
 }
 
-void Client::onGetRequest()
+void Client::onGetRequest(const Route *route)
 {
     _receiving = false;
 
-    try {
-        Response res = Response::getFileResponse(_path);
+    try
+    {
+        Response res = Response::getFileResponse(_path, route->autoIndex(), route->getRoute());
         _write = res.build();
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
         _write = res.build();
     }
@@ -78,8 +81,9 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     _request = Request::fromString(header);
 
-    //TODO: obligé d'utiliser compare sinon ça marche pas??
-    if (_request.getHttpVersion().compare("HTTP/1.1") == 0) {
+    // TODO: obligé d'utiliser compare sinon ça marche pas??
+    if (_request.getHttpVersion().compare("HTTP/1.1") == 0)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED, "data/404.html");
         _write = res.build();
         _receiving = false;
@@ -88,16 +92,20 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     const Route *route = NULL;
 
-    try {
+    try
+    {
         route = config.getRoute(_request.getPath());
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST, "data/404.html");
         _write = res.build();
         _receiving = false;
         return (false);
     }
 
-    if (!route->isHTTPMethodAuthorized(_request.getMethod())) {
+    if (!route->isHTTPMethodAuthorized(_request.getMethod()))
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED, "data/404.html");
         _write = res.build();
         _receiving = false;
@@ -107,9 +115,12 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     std::ostringstream path;
     std::ostringstream tempPath;
 
-    if (_request.getPath().size() > 1 && _request.getPath().at(_request.getPath().size() - 1) == '/') {
+    if (_request.getPath().size() > 1 && _request.getPath().at(_request.getPath().size() - 1) == '/')
+    {
         tempPath << _request.getPath().substr(0, _request.getPath().size() - 1);
-    } else {
+    }
+    else
+    {
         tempPath << _request.getPath();
     }
 
@@ -117,11 +128,15 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     path << route->getRoot();
 
-    if (pathStr == route->getRoute()) {
+    if (pathStr == route->getRoute())
+    {
         path << "/" << route->getIndex();
-    } else {
+    }
+    else
+    {
         pathStr = pathStr.substr(route->getRoute().size());
-        if (pathStr.at(0) != '/') {
+        if (pathStr.at(0) != '/')
+        {
             path << "/";
         }
         path << pathStr;
@@ -132,7 +147,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     std::cout << "Path: " << _path << std::endl;
 
     if (_request.getMethod().getKey() == HttpMethod::GET.getKey()) {
-        onGetRequest();
+        onGetRequest(route);
     } else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey()) {
         onDeleteRequest();
     } else if (_request.getMethod().getKey() == HttpMethod::POST.getKey()) {
@@ -192,21 +207,26 @@ void Client::onReceive(const ServerConfig &config)
 
 bool Client::onSend(void)
 {
-    if (this->_write.empty()) {
+    if (this->_write.empty())
+    {
         throw ClientException("Nothing to write");
     }
 
     std::string send;
 
-    if (_write.size() > MAX_READ) {
+    if (_write.size() > MAX_READ)
+    {
         send = _write.substr(0, MAX_READ);
         _write = _write.substr(MAX_READ);
-    } else {
+    }
+    else
+    {
         send = _write;
         _write = "";
     }
 
-    if (write(_fd, send.c_str(), send.size()) <= 0) {
+    if (write(_fd, send.c_str(), send.size()) <= 0)
+    {
         throw ClientException("Output Stream Data was stopped");
     }
 

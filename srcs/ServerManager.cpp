@@ -46,7 +46,8 @@ void ServerManager::init(const std::string &path)
         try
         {
             int fd = server->prepareServer();
-            if (fd > _maxFd) {
+            if (fd > _maxFd)
+            {
                 _maxFd = fd;
             }
             _servers.push_back(server);
@@ -56,6 +57,11 @@ void ServerManager::init(const std::string &path)
             delete server;
             throw;
         }
+
+        std::vector<ServerConfig>::const_iterator tmp = it;
+        if (++tmp != this->_configs.end())
+            std::cout << GREY << "\n------------------------------------------\n\n"
+                      << WHITE << std::endl;
     }
 }
 
@@ -85,20 +91,21 @@ void ServerManager::prepareFds(void)
     FD_SET(STDIN_FILENO, &_readFds);
 
     // Put serverFds
-    std::vector<Server*>::iterator servIt = _servers.begin();
+    std::vector<Server *>::iterator servIt = _servers.begin();
 
     for (; servIt != _servers.end(); servIt++)
     {
         Server *server = (*servIt);
         FD_SET(server->getFd(), &_readFds);
 
-        std::map<int, Client*>::iterator it = server->getClients().begin();
+        std::map<int, Client *>::iterator it = server->getClients().begin();
 
         // Put all clients fd
         for (; it != server->getClients().end(); it++)
         {
             FD_SET((*it).first, &_readFds);
-            if (!(*it).second->isReceiving()) {
+            if (!(*it).second->isReceiving())
+            {
                 FD_SET((*it).first, &_writeFds);
             }
         }
@@ -109,13 +116,14 @@ bool ServerManager::waitForUpdate(void)
 {
     if (select(_maxFd + 1, &_readFds, &_writeFds, NULL, NULL) < 0)
         return (false);
-    
+
     if (FD_ISSET(STDIN_FILENO, &_readFds))
     {
         std::string line;
         std::getline(std::cin, line);
 
-        if (line.compare("stop") == 0) {
+        if (line.compare("stop") == 0)
+        {
             return (false);
         }
     }
@@ -126,7 +134,7 @@ bool ServerManager::waitForUpdate(void)
 bool ServerManager::newClientCheck(void)
 {
     // Has a new client arrived?
-    std::vector<Server*>::iterator it = _servers.begin();
+    std::vector<Server *>::iterator it = _servers.begin();
 
     for (; it != _servers.end(); it++)
     {
@@ -155,21 +163,21 @@ bool ServerManager::newClientCheck(void)
 
 void ServerManager::readCheck(void)
 {
-    std::vector<Server*>::iterator servIt = _servers.begin();
+    std::vector<Server *>::iterator servIt = _servers.begin();
 
     for (; servIt != _servers.end(); servIt++)
     {
         Server *server = (*servIt);
         FD_SET(server->getFd(), &_readFds);
 
-        std::map<int, Client*>::iterator it = server->getClients().begin();
+        std::map<int, Client *>::iterator it = server->getClients().begin();
 
-        std::vector<std::map<int, Client*>::iterator> removed;
+        std::vector<std::map<int, Client *>::iterator> removed;
 
         // iterate all clients and check if we have received something
         for (; it != server->getClients().end(); it++)
         {
-            std::pair<int, Client*> client = *it;
+            std::pair<int, Client *> client = *it;
 
             if (!FD_ISSET(client.first, &_readFds))
                 continue;
@@ -177,16 +185,20 @@ void ServerManager::readCheck(void)
             try {
                 client.second->onReceive(server->getConfig());
                 continue;
-            } catch (std::exception &e) {}
+            }
+            catch (std::exception &e)
+            {
+            }
 
             removed.push_back(it);
             client.second->onStop();
             delete (client.second);
         }
 
-        std::vector<std::map<int, Client*>::iterator>::iterator it2 = removed.begin();
+        std::vector<std::map<int, Client *>::iterator>::iterator it2 = removed.begin();
 
-        for (; it2 != removed.end(); it2++) {
+        for (; it2 != removed.end(); it2++)
+        {
             server->removeClient(*it2);
         }
     }
@@ -194,37 +206,42 @@ void ServerManager::readCheck(void)
 
 void ServerManager::writeCheck(void)
 {
-    std::vector<Server*>::iterator servIt = _servers.begin();
+    std::vector<Server *>::iterator servIt = _servers.begin();
 
     for (; servIt != _servers.end(); servIt++)
     {
         Server *server = (*servIt);
         FD_SET(server->getFd(), &_readFds);
 
-        std::map<int, Client*>::iterator it = server->getClients().begin();
+        std::map<int, Client *>::iterator it = server->getClients().begin();
 
-        std::vector<std::map<int, Client*>::iterator> removed;
+        std::vector<std::map<int, Client *>::iterator> removed;
 
         // iterate all clients and check if we have received something
         for (; it != server->getClients().end(); it++)
         {
-            std::pair<int, Client*> client = *it;
+            std::pair<int, Client *> client = *it;
 
             if (!FD_ISSET(client.first, &_writeFds))
                 continue;
 
-            try {
-                if (client.second->onSend()) {
+            try
+            {
+                if (client.second->onSend())
+                {
                     continue;
                 }
-            } catch (std::exception &e) {}
+            }
+            catch (std::exception &e)
+            {
+            }
 
             removed.push_back(it);
             client.second->onStop();
             delete (client.second);
         }
 
-        std::vector<std::map<int, Client*>::iterator>::iterator it2 = removed.begin();
+        std::vector<std::map<int, Client *>::iterator>::iterator it2 = removed.begin();
 
         for (; it2 != removed.end(); it2++)
         {

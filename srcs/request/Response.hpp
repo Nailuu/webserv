@@ -12,6 +12,7 @@
 #include "HTTPPayload.hpp"
 #include "../enum/MimeType.hpp"
 #include "../enum/HttpStatusCode.hpp"
+#include "AutoIndexGenerator.hpp"
 
 class Response : public HTTPPayload
 {
@@ -28,7 +29,7 @@ public:
     void setContent(const std::string &content, const MimeType &mimeType);
     void setContentFile(const std::string &path);
     const HttpStatusCode &getStatusCode(void) const;
-    static const Response getFileResponse(const std::string &path);
+    static const Response getFileResponse(const std::string &path, bool autoindex = false, const std::string &route = "");
     static const Response getErrorResponse(const HttpStatusCode &status, const std::string &path);
     const std::string build(void) const;
 };

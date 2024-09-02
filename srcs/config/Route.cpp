@@ -40,6 +40,14 @@ void Route::update(const std::vector<Pair> &pairs)
             throw RouteException("Max body size must be a positive number");
     }
 
+    // REDIRECTION
+    this->validate("redirection", pairs, this->_redirection, false);
+    if (!this->_redirection.empty())
+    {
+        // ignore every others params
+        return;
+    }
+
     // ROOT
     this->validate("root", pairs, tmp, false);
     if (!tmp.empty())
@@ -146,6 +154,11 @@ bool Route::isHTTPMethodAuthorized(HttpMethod method) const
     return (false);
 }
 
+bool Route::autoIndex(void) const
+{
+    return (this->_autoindex);
+}
+
 void Route::stringToInt(const std::string &str, int &result, const std::string &context)
 {
     std::stringstream ss(str);
@@ -182,16 +195,22 @@ const char *Route::RouteException::what() const throw()
 
 std::ostream &operator<<(std::ostream &os, const Route &r)
 {
-    os << "      [\"" << r.getRoute() << "\"]" << std::endl;
-    os << "      Root folder: '" << r.getRoot() << "'" << std::endl;
-    os << "      Index file: '" << r.getIndex() << "'" << std::endl;
-    os << "      Max Request Body Size: " << r.getMaxBodySize() << std::endl;
-    os << "      Accepted HTTP methods: [";
+    os << "      [\"" << highlight(r.getRoute(), false) << "\"]" << std::endl;
+    os << "      Root folder: " << highlight(r.getRoot(), false) << std::endl;
+    os << "      Auto Index: " << highlight(r.autoIndex() ? "true" : "false", false) << std::endl;
+    os << "      Index file: " << highlight(r.getIndex(), false) << std::endl;
+
+    std::ostringstream tmp;
+
+    tmp << r.getMaxBodySize();
+
+    os << "      Max Request Body Size: " << highlight(tmp.str(), false) << std::endl;
+    os << "      Accepted HTTP methods: ";
 
     const std::vector<HttpMethod> methods = r.getHTTPMethods();
     for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
-        std::cout << (it == methods.begin() ? "" : ", ") << ((HttpMethod)*it).getKey();
-    os << "]" << std::endl;
+        std::cout << (it == methods.begin() ? "" : ", ") << highlight(((HttpMethod)*it).getKey(), false);
+    os << std::endl;
 
     return (os);
 }
