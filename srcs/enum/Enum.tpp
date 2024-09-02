@@ -38,7 +38,7 @@ const T &Enum<T>::getValue(void) const
 }
 
 template <typename T>
-Enum<T>::EnumException::EnumException(const std::string &message) : _message("Enum Error - " + message) {}
+Enum<T>::EnumException::EnumException(const std::string &message) : _message(std::string(RED) + "Enum Error" + std::string(YELLOW) + " - " + message) {}
 
 template <typename T>
 const char *Enum<T>::EnumException::what() const throw()

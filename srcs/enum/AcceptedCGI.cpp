@@ -5,10 +5,12 @@
 std::vector<AcceptedCGI *> AcceptedCGI::_types;
 
 const AcceptedCGI AcceptedCGI::PYTHON("python", ".py");
+const AcceptedCGI AcceptedCGI::BLA("bla", ".bla");
 
 bool AcceptedCGI::addTypes(void)
 {
     _types.push_back((AcceptedCGI *)&PYTHON);
+    _types.push_back((AcceptedCGI *)&BLA);
     return (true);
 }
 
@@ -26,7 +28,7 @@ const AcceptedCGI &AcceptedCGI::get(const std::string &key)
         }
     }
 
-    throw EnumException("Cannot get from Key");
+    throw EnumException("Cannot get from key: '" + highlight(key) + "'");
 }
 
 const AcceptedCGI &AcceptedCGI::getByValue(const std::string &value)
@@ -43,7 +45,7 @@ const AcceptedCGI &AcceptedCGI::getByValue(const std::string &value)
         }
     }
 
-    throw EnumException("Cannot get from Value");
+    throw EnumException("Cannot get from value: '" + highlight(value) + "'");
 }
 
 static bool added = AcceptedCGI::addTypes();

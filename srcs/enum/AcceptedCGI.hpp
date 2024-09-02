@@ -18,4 +18,5 @@ public:
     static const AcceptedCGI &get(const std::string &key);
     static const AcceptedCGI &getByValue(const std::string &value);
     static const AcceptedCGI PYTHON;
+    static const AcceptedCGI BLA;
 };

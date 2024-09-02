@@ -4,7 +4,7 @@ ServerManager::ServerManager() : _maxFd(0) {}
 
 ServerManager::~ServerManager()
 {
-    std::cout << "Closing ServerManager..." << std::endl;
+    std::cout << GREY << "Closing ServerManager..." << std::endl;
 }
 
 void ServerManager::stopServers(void)
@@ -22,7 +22,7 @@ void ServerManager::stopServers(void)
 
 void ServerManager::init(const std::string &path)
 {
-    std::cout << "Launching ServerManager with configuration file: \"" << path << "\"" << std::endl;
+    std::cout << GREY << "Launching ServerManager with configuration file: '" << BLUE << path << GREY << "'" << WHITE << std::endl;
 
     // Create config object and parse configuration file
     try

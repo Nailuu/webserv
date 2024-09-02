@@ -25,7 +25,7 @@ const std::string Request::extractAndValidate(std::string &str, const std::strin
 
     if (index == std::string::npos || (index == 0 || str.length() <= delimiter.length()))
     {
-        throw HTTPPayloadException("Invalid line: '" + str + "'");
+        throw HTTPPayloadException("Invalid line: '" + highlight(str) + "'");
     }
 
     std::string result = str.substr(0, index);
@@ -44,25 +44,25 @@ Request Request::fromString(std::string &str)
     }
     catch (const HttpMethod::EnumException &e)
     {
-        throw HTTPPayloadException("Invalid Method: '" + tmp + "'");
+        throw HTTPPayloadException("Invalid Method: '" + highlight(tmp) + "'");
     }
 
     std::string route = extractAndValidate(str, " ");
     if (!startsWith(route, "/"))
     {
-        throw HTTPPayloadException("Invalid Route: '" + route + "'");
+        throw HTTPPayloadException("Invalid Route: '" + highlight(route) + "'");
     }
 
     std::string httpVersion = extractAndValidate(str, "\n");
     if (!startsWith(httpVersion, "HTTP/") || httpVersion.length() < 6)
     {
-        throw HTTPPayloadException("Invalid HTTP Version: '" + httpVersion + "'");
+        throw HTTPPayloadException("Invalid HTTP Version: '" + highlight(httpVersion) + "'");
     }
 
     std::string host = extractAndValidate(str, "\n");
     if (!startsWith(host, "Host: ") || host.length() <= 6)
     {
-        throw HTTPPayloadException("Invalid Host: '" + host + "'");
+        throw HTTPPayloadException("Invalid Host: '" + highlight(host) + "'");
     }
     host = host.substr(6); // remove "Host: "
 

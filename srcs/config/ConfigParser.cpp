@@ -13,7 +13,7 @@ void ConfigParser::parse(const std::string &path)
     file.open(path.c_str());
 
     if (file.fail())
-        throw ParsingException("Can't open configuration file: " + std::string(strerror(errno)));
+        throw ParsingException("Can't open configuration file: '" + highlight(std::string(strerror(errno))) + "'");
 
     // Read file content
     std::stringstream buffer;
@@ -30,14 +30,14 @@ void ConfigParser::parse(const std::string &path)
 
         // Verify that on top of the JSON configuration object there is a key = servers
         if (!Pair::exist("servers", pairs))
-            throw ParsingException("Expected 'servers' in the configuration file");
+            throw ParsingException("Expected '" + highlight("servers") + "' in the configuration file");
 
         // Get servers configuration
         std::vector<std::string> servers = JSON::getObjectsFromArray(Pair::get("servers", pairs).getValue());
 
         // Verify there is at least one object in the servers array
         if (servers.empty())
-            throw ParsingException("Expected at least one server configuration in 'servers'");
+            throw ParsingException("Expected at least one server configuration in '" + highlight("servers") + "'");
 
         // Loop through every servers object
         for (std::vector<std::string>::const_iterator it = servers.begin(); it != servers.end(); it++)
@@ -71,7 +71,7 @@ void ConfigParser::output(void) const
     }
 }
 
-ConfigParser::ParsingException::ParsingException(const std::string &message) : _message("Parsing Error - " + message)
+ConfigParser::ParsingException::ParsingException(const std::string &message) : _message(std::string(RED) + "Parsing Error" + std::string(YELLOW) + " - " + message)
 {
 }
 

@@ -32,7 +32,7 @@ const HttpMethod &HttpMethod::get(const std::string &key)
         }
     }
 
-    throw EnumException("Cannot get from Key");
+    throw EnumException("Cannot get from key: '" + highlight(key) + "'");
 }
 
 const HttpMethod &HttpMethod::getByValue(const std::string &value)
@@ -49,7 +49,7 @@ const HttpMethod &HttpMethod::getByValue(const std::string &value)
         }
     }
 
-    throw EnumException("Cannot get from Value");
+    throw EnumException("Cannot get from value: '" + highlight(value) + "'");
 }
 
 static bool added = HttpMethod::addTypes();

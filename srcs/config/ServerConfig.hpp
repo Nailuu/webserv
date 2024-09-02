@@ -33,6 +33,7 @@ public:
 private:
     int _port;
     int _max_body_size;
+    bool _autoindex;
     std::string _host;
     std::string _name;
     std::string _root;

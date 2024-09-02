@@ -1,6 +1,6 @@
 #include "ServerConfig.hpp"
 
-ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE) {}
+ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE), _autoindex(false) {}
 
 void ServerConfig::build(const std::vector<Pair> &pairs)
 {
@@ -10,7 +10,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
     this->validate("port", pairs, tmp);
     this->stringToInt(tmp, this->_port, "port");
     if (this->_port < 0 || this->_port > 65535)
-        throw ServerConfigException("Port is out of range (0-65535)");
+        throw ServerConfigException("Port is out of range (" + highlight("0-65535") + ")");
 
     // MAX BODY SIZE
     this->validate("max_body_size", pairs, tmp, false);
@@ -30,18 +30,32 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
     // ROOT
     this->validate("root", pairs, this->_root);
     if (!isValidDirectory(this->_root))
-        throw ServerConfigException("Path in 'root' is not a valid directory path: '" + this->_root + "'");
+        throw ServerConfigException("Path in '" + highlight("root") + "' is not a valid directory path: '" + highlight(this->_root) + "'");
 
     // INDEX
-    this->validate("index", pairs, this->_index);
+    this->validate("index", pairs, this->_index, false);
+    if (!this->_index.empty())
+    {
+        std::ifstream file;
+        std::string path = this->_root + "/" + this->_index;
 
-    std::ifstream file;
-    std::string path = this->_root + "/" + this->_index;
+        file.open(path.c_str());
 
-    file.open(path.c_str());
+        if (file.fail())
+            throw ServerConfigException("Can't open index file at '" + highlight(path) + "': '" + highlight(std::string(strerror(errno))) + "'");
+    }
 
-    if (file.fail())
-        throw ServerConfigException("Can't open index file at '" + path + "': " + std::string(strerror(errno)));
+    // DIRECTORY LISTING "autoindex"
+    this->validate("autoindex", pairs, tmp, false);
+    if (!tmp.empty())
+    {
+        if (tmp == "true")
+            this->_autoindex = true;
+        else if (tmp == "false")
+            this->_autoindex = false;
+        else
+            throw ServerConfigException("Expected boolean value in '" + highlight("autoindex") + "': '" + highlight(tmp) + "'");
+    }
 
     try
     {
@@ -50,7 +64,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
 
         std::vector<std::string> methods = JSON::getValuesFromArray(tmp);
         if (!methods.size())
-            throw ServerConfigException("Expected at least one HTTP method in 'allowed_methods'");
+            throw ServerConfigException("Expected at least one HTTP method in '" + highlight("allowed_methods") + "'");
 
         for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
         {
@@ -62,7 +76,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
             }
             catch (const HttpMethod::EnumException &e)
             {
-                throw ServerConfigException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
+                throw ServerConfigException("Invalid HTTP Method in '" + highlight("allowed_methods") + "': '" + highlight(*it) + "'");
             }
 
             this->_accepted_http_methods.push_back(hm);
@@ -70,7 +84,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
 
         // ROUTES
         // create default route on "/" based on default settings
-        this->_routes.push_back(Route(this->_max_body_size, "/", this->_root, this->_index, this->_accepted_http_methods));
+        this->_routes.push_back(Route(this->_max_body_size, "/", this->_root, this->_index, this->_accepted_http_methods, this->_autoindex));
 
         // Create more routes if 'routes' is defined in the configuration JSON
         this->validate("routes", pairs, tmp, false);
@@ -80,7 +94,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
             for (std::vector<std::string>::const_iterator it = routes.begin(); it != routes.end(); it++)
             {
                 // Initialize route with default settings
-                Route r(this->_max_body_size, "unknown", this->_root, this->_index, this->_accepted_http_methods);
+                Route r(this->_max_body_size, "unknown", this->_root, this->_index, this->_accepted_http_methods, this->_autoindex);
 
                 // Overwrite default settings
                 std::vector<Pair> p = JSON::getKeysAndValuesFromObject(*it);
@@ -186,12 +200,12 @@ void ServerConfig::validate(const std::string &key, const std::vector<Pair> &pai
     bool exist = Pair::exist(key, pairs);
 
     if (mandatory && !exist)
-        throw ServerConfigException("No '" + key + "' defined in server configuration");
+        throw ServerConfigException("No '" + highlight(key) + "' defined in server configuration");
     else if (exist)
     {
         result = Pair::get(key, pairs).getValue();
         if (result.empty())
-            throw ServerConfigException("Expected value in '" + key + "'");
+            throw ServerConfigException("Expected value in '" + highlight(key) + "'");
     }
     else
         result = "";
@@ -203,10 +217,10 @@ void ServerConfig::stringToInt(const std::string &str, int &result, const std::s
     ss >> result;
 
     if (ss.fail() || !ss.eof())
-        throw ServerConfigException("Value is not a valid int '" + str + "' in '" + context + "'");
+        throw ServerConfigException("Value is not a valid int '" + highlight(str) + "' in '" + highlight(context) + "'");
 }
 
-ServerConfig::ServerConfigException::ServerConfigException(const std::string &message) : _message("Server Config Error - " + message)
+ServerConfig::ServerConfigException::ServerConfigException(const std::string &message) : _message(std::string(RED) + "Server Config Error" + std::string(YELLOW) + " - " + message)
 {
 }
 

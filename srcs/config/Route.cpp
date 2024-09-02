@@ -1,9 +1,10 @@
 #include "Route.hpp"
 
-Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods)
+Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex)
 {
     this->_max_body_size = maxBodySize;
     this->_directory = false;
+    this->_autoindex = autoindex;
     this->_route = route;
     this->_root = root;
     this->_index = index;
@@ -22,13 +23,13 @@ void Route::update(const std::vector<Pair> &pairs)
         this->_route.erase(this->_route.size() - 1);
 
     if (this->_route.at(0) != '/')
-        throw RouteException("Route must start with '/': '" + this->_route + "'");
+        throw RouteException("Route must start with '" + highlight("/") + "': '" + highlight(this->_route) + "'");
 
     if (this->_route.at(this->_route.size() - 1) == '/' && this->_route.size() > 1)
         this->_directory = true;
 
     if (this->_directory && this->_route.size() == 2)
-        throw RouteException("Route is invalid: '" + this->_route + "'");
+        throw RouteException("Route is invalid: '" + highlight(this->_route) + "'");
 
     // MAX BODY SIZE
     this->validate("max_body_size", pairs, tmp, false);
@@ -45,7 +46,7 @@ void Route::update(const std::vector<Pair> &pairs)
     {
         this->_root = tmp;
         if (!isValidDirectory(this->_root))
-            throw RouteException("Path in 'root' is not a valid directory path: '" + this->_root + "'");
+            throw RouteException("Path in '" + highlight("root") + "' is not a valid directory path: '" + highlight(this->_root) + "'");
     }
 
     // INDEX
@@ -60,7 +61,19 @@ void Route::update(const std::vector<Pair> &pairs)
         file.open(path.c_str());
 
         if (file.fail())
-            throw RouteException("Can't open index file at '" + path + "': " + std::string(strerror(errno)));
+            throw RouteException("Can't open index file at '" + highlight(path) + "': '" + highlight(std::string(strerror(errno))) + "'");
+    }
+
+    // DIRECTORY LISTING "autoindex"
+    this->validate("autoindex", pairs, tmp, false);
+    if (!tmp.empty())
+    {
+        if (tmp == "true")
+            this->_autoindex = true;
+        else if (tmp == "false")
+            this->_autoindex = false;
+        else
+            throw RouteException("Expected boolean value in '" + highlight("autoindex") + "': '" + tmp + "'");
     }
 
     try
@@ -71,7 +84,7 @@ void Route::update(const std::vector<Pair> &pairs)
         {
             std::vector<std::string> methods = JSON::getValuesFromArray(tmp);
             if (!methods.size())
-                throw RouteException("Expected at least one HTTP method in 'allowed_methods'");
+                throw RouteException("Expected at least one HTTP method in '" + highlight("allowed_methods") + "'");
 
             for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); it++)
             {
@@ -83,7 +96,7 @@ void Route::update(const std::vector<Pair> &pairs)
                 }
                 catch (const HttpMethod::EnumException &e)
                 {
-                    throw RouteException("Invalid HTTP Method in 'allowed_methods': '" + *it + "'");
+                    throw RouteException("Invalid HTTP Method in '" + highlight("allowed_methods") + "': '" + highlight(*it) + "'");
                 }
 
                 this->_accepted_http_methods.push_back(hm);
@@ -139,7 +152,7 @@ void Route::stringToInt(const std::string &str, int &result, const std::string &
     ss >> result;
 
     if (ss.fail() || !ss.eof())
-        throw RouteException("Value is not a valid int '" + str + "' in '" + context + "'");
+        throw RouteException("Value is not a valid int '" + highlight(str) + "' in '" + highlight(context) + "'");
 }
 
 void Route::validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory)
@@ -147,18 +160,18 @@ void Route::validate(const std::string &key, const std::vector<Pair> &pairs, std
     bool exist = Pair::exist(key, pairs);
 
     if (mandatory && !exist)
-        throw RouteException("No '" + key + "' defined in route");
+        throw RouteException("No '" + highlight(key) + "' defined in route");
     else if (exist)
     {
         result = Pair::get(key, pairs).getValue();
         if (result.empty())
-            throw RouteException("Expected value in '" + key + "'");
+            throw RouteException("Expected value in '" + highlight(key) + "'");
     }
     else
         result = "";
 }
 
-Route::RouteException::RouteException(const std::string &message) : _message("Route Error - " + message)
+Route::RouteException::RouteException(const std::string &message) : _message(std::string(RED) + "Route Error" + std::string(YELLOW) + " - " + message)
 {
 }
 

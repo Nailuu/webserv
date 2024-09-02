@@ -21,7 +21,7 @@ void HTTPPayload::addField(const std::string &key, const std::string &value)
     this->_fields.insert(std::map<std::string, std::string>::value_type(key, value));
 }
 
-HTTPPayload::HTTPPayloadException::HTTPPayloadException(const std::string &message) : _message("HTTPPayload Error - " + message) {}
+HTTPPayload::HTTPPayloadException::HTTPPayloadException(const std::string &message) : _message(std::string(RED) + "HTTPPayload Error" + std::string(YELLOW) + " - " + message) {}
 
 const char *HTTPPayload::HTTPPayloadException::what() const throw()
 {

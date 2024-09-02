@@ -52,7 +52,7 @@ void Response::setContentFile(const std::string &path)
     std::ifstream file(path.c_str());
 
     if (!file.is_open()) {
-        throw HTTPPayloadException("Cannot open target file: '" + path + "'");
+        throw HTTPPayloadException("Cannot open target file: '" + highlight(path) + "'");
     }
 
     std::stringstream buffer;

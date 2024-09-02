@@ -87,7 +87,7 @@ Server::~Server()
 {
 }
 
-Server::ServerException::ServerException(const std::string &message) : _message("Server Error - " + message)
+Server::ServerException::ServerException(const std::string &message) : _message(std::string(RED) + "Server Error" + std::string(YELLOW) + " - " + message)
 {
 }
 

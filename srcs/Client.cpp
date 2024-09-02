@@ -205,7 +205,7 @@ void Client::onStop(void)
     close(_fd);
 }
 
-Client::ClientException::ClientException(const std::string &message) : _message("Server Error - " + message) {}
+Client::ClientException::ClientException(const std::string &message) : _message(std::string(RED) + "Client Error" + std::string(YELLOW) + " - " + message) {}
 
 const char *Client::ClientException::what() const throw()
 {

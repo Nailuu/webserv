@@ -26,13 +26,13 @@ std::size_t JSON::getClosingBracketPos(const std::string &json, std::string brac
 std::string JSON::getContentFromArray(const std::string &json)
 {
     if (json.at(0) != '[')
-        throw JSONException("Expected '['\n" + beautify(json));
+        throw JSONException("Expected '" + highlight("[") + "'\n" + beautify(json));
 
     // Get position of closing square bracket
     std::size_t pos = getClosingBracketPos(json, "[]");
 
     if (pos == std::string::npos)
-        throw JSONException("Array is never closed ']'\n" + beautify(json));
+        throw JSONException("Array is never closed '" + highlight("]") + "'\n" + beautify(json));
 
     std::string array = json.substr(1, pos - 1);
 
@@ -61,13 +61,13 @@ std::vector<std::string> JSON::getObjectsFromArray(const std::string &json)
                 break;
 
             if (array.at(0) != '{')
-                throw JSONException("Expected '{'\n" + beautify(array));
+                throw JSONException("Expected '" + highlight("{") + "'\n" + beautify(array));
 
             // Get position of closing curly bracket
             std::size_t pos = getClosingBracketPos(array, "{}");
 
             if (pos == std::string::npos)
-                throw JSONException("Object is never closed '}'\n" + beautify(array));
+                throw JSONException("Object is never closed '" + highlight("}") + "'\n" + beautify(array));
 
             std::string object = array.substr(0, pos + 1);
             if (object.length() == 2)
@@ -78,7 +78,7 @@ std::vector<std::string> JSON::getObjectsFromArray(const std::string &json)
 
             // Check that after a closing curly bracket there is a comma
             if ((array.length() - 1) == pos || array.at(pos + 1) != ',')
-                throw JSONException("Expected ',' after object\n" + beautify(array));
+                throw JSONException("Expected '" + highlight(",") + "' after object\n" + beautify(array));
 
             array = array.substr(pos + 1);
         }
@@ -94,10 +94,10 @@ std::vector<std::string> JSON::getObjectsFromArray(const std::string &json)
 std::vector<Pair> JSON::getKeysAndValuesFromObject(const std::string &json)
 {
     if (json.at(0) != '{')
-        throw JSONException("Expected '{'\n" + beautify(json));
+        throw JSONException("Expected '" + highlight("{") + "'\n" + beautify(json));
 
     if (json.at(json.length() - 1) != '}')
-        throw JSONException("Object is never closed '}'\n" + beautify(json));
+        throw JSONException("Object is never closed '" + highlight("}") + "'\n" + beautify(json));
 
     if (json.length() == 2)
         throw JSONException("Object is empty!\n" + beautify(json));
@@ -126,7 +126,7 @@ std::vector<Pair> JSON::getKeysAndValuesFromObject(const std::string &json)
         pos = tmp.find(':');
 
         if (pos == std::string::npos)
-            throw JSONException("Expected ':'\n" + beautify(tmp));
+            throw JSONException("Expected '" + highlight(":") + "'\n" + beautify(tmp));
 
         key = tmp.substr(0, pos);
         tmp = tmp.substr(pos + 1);
@@ -137,7 +137,7 @@ std::vector<Pair> JSON::getKeysAndValuesFromObject(const std::string &json)
             pos = getClosingBracketPos(tmp, "[]");
 
             if (pos == std::string::npos)
-                throw JSONException("Array is never closed ']'\n" + beautify(tmp));
+                throw JSONException("Array is never closed '" + highlight("]") + "'\n" + beautify(tmp));
 
             value = tmp.substr(0, pos + 1);
         }
@@ -147,19 +147,19 @@ std::vector<Pair> JSON::getKeysAndValuesFromObject(const std::string &json)
             pos = tmp.find('"', 1);
 
             if (pos == std::string::npos)
-                throw JSONException("Expected '\"'\n" + beautify(tmp));
+                throw JSONException("Expected '" + highlight("\"") + "'\n" + beautify(tmp));
 
             value = tmp.substr(1, pos - 1);
         }
         else
-            throw JSONException("Expected '[' or '\"'\n" + beautify(tmp));
+            throw JSONException("Expected '" + highlight("[") + "' or '" + highlight("\"") + "'\n" + beautify(tmp));
 
         // Push key/values
         result.push_back(Pair(key, value));
 
         // Check that after a key/value there is a comma
         if ((tmp.length() - 1) == pos || tmp.at(pos + 1) != ',')
-            throw JSONException("Expected ',' after key/value\n" + beautify(tmp));
+            throw JSONException("Expected '" + highlight(",") + "' after key/value\n" + beautify(tmp));
 
         tmp = tmp.substr(pos + 1);
     }
@@ -174,7 +174,7 @@ std::vector<std::string> JSON::getValuesFromArray(const std::string &json)
         std::vector<std::string> result;
 
         std::string array = getContentFromArray(json);
-        
+
         if (array.empty())
             return (result);
 
@@ -189,7 +189,7 @@ std::vector<std::string> JSON::getValuesFromArray(const std::string &json)
                 break;
 
             if (array.at(0) != '"')
-                throw JSONException("Expected '\"'\n" + beautify(array));
+                throw JSONException("Expected '" + highlight("\"") + "'\n" + beautify(array));
 
             std::size_t pos = -1;
 
@@ -202,7 +202,7 @@ std::vector<std::string> JSON::getValuesFromArray(const std::string &json)
             }
 
             if (pos == std::string::npos)
-                throw JSONException("Expected value to end with '\"'\n" + beautify(array));
+                throw JSONException("Expected value to end with '" + highlight("\"") + "'\n" + beautify(array));
 
             std::string str = array.substr(1, pos - 1);
 
@@ -214,7 +214,7 @@ std::vector<std::string> JSON::getValuesFromArray(const std::string &json)
 
             // Check that after a value there is a comma
             if ((array.length() - 1) == pos || array.at(pos + 1) != ',')
-                throw JSONException("Expected ',' after value\n" + beautify(array));
+                throw JSONException("Expected '" + highlight(",") + "' after value\n" + beautify(array));
 
             array = array.substr(pos + 1);
         }
@@ -268,10 +268,10 @@ std::string JSON::beautify(const std::string &json)
         }
     }
 
-    return (result);
+    return (std::string(BLUE) + result);
 }
 
-JSON::JSONException::JSONException(const std::string &message) : _message("JSON Error - " + message)
+JSON::JSONException::JSONException(const std::string &message) : _message(std::string(RED) + "JSON Error" + std::string(YELLOW) + " - " + message)
 {
 }
 

@@ -17,7 +17,7 @@
 class Route
 {
 public:
-    Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods);
+    Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex);
     void update(const std::vector<Pair>& pairs);
     int getMaxBodySize(void) const;
     const std::string &getRoute(void) const;
@@ -29,6 +29,7 @@ public:
 private:
     int _max_body_size;
     bool _directory;
+    bool _autoindex;
     std::string _route;
     std::string _root;
     std::string _index;

@@ -105,7 +105,7 @@ const HttpStatusCode &HttpStatusCode::get(const std::string &key)
         }
     }
 
-    throw EnumException("Cannot get from Key");
+    throw EnumException("Cannot get from key: '" + highlight(key) + "'");
 }
 
 const HttpStatusCode &HttpStatusCode::getByValue(const int value)
@@ -121,7 +121,7 @@ const HttpStatusCode &HttpStatusCode::getByValue(const int value)
         }
     }
 
-    throw EnumException("Cannot get from Value");
+    throw EnumException("Cannot get from value");
 }
 
 static bool added = HttpStatusCode::addTypes();
