@@ -13,7 +13,7 @@ public:
     HTTPPayload(const std::string &httpVersion);
     HTTPPayload(const HTTPPayload &other);
     const std::string &getHttpVersion(void) const;
-    const std::map<std::string, std::string> &getFields(void) const;
+    const std::map<std::string, std::string> &getFields(void);
     void addField(const std::string &key, const std::string &value);
 
 protected:

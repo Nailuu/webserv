@@ -1,23 +1,36 @@
 #include "Client.hpp"
 #include "request/Response.hpp"
 #include <cstdio>
+#include <iostream>
+#include <string>
 
-Client::Client(const int fd) : _fd(fd), _receive(true), _dataIndex(0), _dataRead(0), _write("")  {}
+Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(0), _reader(_fd), _write("")  {}
 
 Client::~Client() {}
 
-Client::Client(const Client &other) : _fd(other._fd), _receive(other._receive), _dataIndex(other._dataIndex), _dataRead(other._dataRead), _write(other._write)
+Client::Client(const Client &other) : _fd(other._fd), _headerParsed(other._headerParsed), _receiving(other._receiving), _path(other._path), _contentLength(0), _reader(other._reader), _request(other._request), _write(other._write) {}
+
+Client Client::operator=(const Client &other)
 {
-    _ossRead << other._ossRead.str();
+    if (this != &other)
+    {
+        _headerParsed = other._headerParsed;
+        _receiving = other._receiving;
+        _contentLength = other._contentLength;
+        _path = other._path;
+        _reader = other._reader;
+        _request = other._request;
+        _write = other._write;
+    }
+    return (*this);
 }
 
-void Client::onGetRequest(const Request &req, const std::string &path)
+void Client::onGetRequest()
 {
-    (void)req;
-    this->_receive = false;
+    _receiving = false;
 
     try {
-        Response res = Response::getFileResponse(path);
+        Response res = Response::getFileResponse(_path);
         _write = res.build();
     } catch (const std::exception &e) {
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
@@ -25,15 +38,14 @@ void Client::onGetRequest(const Request &req, const std::string &path)
     }
 }
 
-void Client::onDeleteRequest(const Request &req, const std::string &path)
+void Client::onDeleteRequest()
 {
-    (void)req;
-    this->_receive = false;
+    _receiving = false;
 
     std::ifstream file;
-    file.open(path.c_str());
+    file.open(_path.c_str());
 
-    if (file.fail() || (file.close(), remove(path.c_str())))
+    if (file.fail() || (file.close(), std::remove(_path.c_str())))
     {
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
         _write = res.build();
@@ -46,23 +58,32 @@ void Client::onDeleteRequest(const Request &req, const std::string &path)
     _write = res.build();
 }
 
-void Client::onFinishReceiving(const ServerConfig &config)
+void Client::onPostRequest()
 {
-    std::string reqStr = _ossRead.str();
+    _receiving = false;
 
-    if (config.getMaxBodySize() > _dataIndex) {
-        Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST, "data/404.html");
-        _write = res.build();
-        return ;
-    }
+    std::cout << "Body: " << _reader.getBody() << std::endl;
 
-    _request = Request::fromString(reqStr);
+    Response res = Response("HTTP/1.1", HttpStatusCode::OK);
+    res.addField("Connection", "close");
+    res.setContent("", MimeType::TEXT_PLAIN);
+    _write = res.build();
+}
+
+bool Client::onHeaderReceived(const ServerConfig &config)
+{
+    _headerParsed = true;
+
+    std::string header = _reader.getHeader();
+
+    _request = Request::fromString(header);
 
     //TODO: obligé d'utiliser compare sinon ça marche pas??
     if (_request.getHttpVersion().compare("HTTP/1.1") == 0) {
         Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED, "data/404.html");
         _write = res.build();
-        return ;
+        _receiving = false;
+        return (false);
     }
 
     const Route *route = NULL;
@@ -72,13 +93,15 @@ void Client::onFinishReceiving(const ServerConfig &config)
     } catch (const std::exception &e) {
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST, "data/404.html");
         _write = res.build();
-        return ;
+        _receiving = false;
+        return (false);
     }
 
     if (!route->isHTTPMethodAuthorized(_request.getMethod())) {
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED, "data/404.html");
         _write = res.build();
-        return ;
+        _receiving = false;
+        return (false);
     }
 
     std::ostringstream path;
@@ -104,72 +127,67 @@ void Client::onFinishReceiving(const ServerConfig &config)
         path << pathStr;
     }
 
-    std::cout << "Path: " << path.str() << std::endl;
+    _path = path.str();
+
+    std::cout << "Path: " << _path << std::endl;
 
     if (_request.getMethod().getKey() == HttpMethod::GET.getKey()) {
-        onGetRequest(_request, path.str());
+        onGetRequest();
     } else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey()) {
-        onDeleteRequest(_request, path.str());
+        onDeleteRequest();
+    } else if (_request.getMethod().getKey() == HttpMethod::POST.getKey()) {
+        std::map<std::string, std::string> fields = _request.getFields();
+        std::map<std::string, std::string>::iterator it = fields.begin();
+
+        for (; it != fields.end(); it++)
+        {
+            std::pair<std::string, std::string> pair = (*it);
+
+            if (pair.first.compare("Content-Length") != 0)
+                continue;
+
+            std::istringstream iss(pair.second);
+            
+            if (iss >> _contentLength)
+            {
+                std::cout << "Content Length Value : " << _contentLength << std::endl;
+                break;
+            }
+            else
+                return (false);
+        }
+
+        if (_contentLength == std::string::npos)
+            return (false);
     }
+    return (true);
 }
 
-bool Client::onReceive(void)
+void Client::onReceive(const ServerConfig &config)
 {
-    if (!this->_receive) {
-        throw ClientException("Input Stream Data is already stopped");
+    try {
+        _reader.onReceive(config);
+    } catch (const std::exception &e) {
+        throw ClientException("Cannot receive from client");
     }
 
-    const int readed = read(_fd, _buffer, MAX_READ);
-
-    if (readed <= 0) {
-        throw ClientException("Input Stream Data was stopped");
-    }
-
-    _buffer[readed] = 0;
-
-    bool hasReachedHeaderEnd = false;
-
-    _ossRead << _buffer;
-
-    if (_dataIndex == 0)
+    if (!_reader.isHeaderReceived())
+        return ;
+    
+    if (!_headerParsed)
     {
-        size_t headerEnd = _ossRead.str().find("\r\n\r\n");
-
-        if (headerEnd != std::string::npos) {
-            _dataIndex = headerEnd + 4;
-        }
-
-        hasReachedHeaderEnd = true;
-
-        _dataRead = readed - _dataIndex;
-    } else {
-        _dataRead += readed;
-
-        if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
-        {
-            std::map<std::string, std::string>::const_iterator it = _request.getFields().find("Content-Length");
-
-            if (it == _request.getFields().end()) {
-                throw ClientException("Content-Length is needed for POST");
-            }
-
-            std::string contentLength = (*it).second;
-
-            int length = atoi(contentLength.c_str());
-
-            if (_dataRead > length) {
-                throw ClientException("Data too huge");
-            } else if (_dataRead == length) {
-                this->_receive = false;
-            }
-        }
+        if (!onHeaderReceived(config))
+            throw ClientException("Error in Header");
     }
+    
+    if (_request.getMethod().getKey() != HttpMethod::POST.getKey())
+        return;
 
-    if (readed != MAX_READ) {
-        this->_receive = false;
-    }
-
-    return (!hasReachedHeaderEnd);
+    if (_reader.getBodySize() > _contentLength)
+        throw ClientException("BodySize is too big !");
+    
+    if (_reader.getBodySize() == _contentLength)
+        onPostRequest();
 }
 
 bool Client::onSend(void)
@@ -195,13 +213,14 @@ bool Client::onSend(void)
     return (!_write.empty());
 }
 
-bool Client::isReceiving(void)
+bool Client::isReceiving(void) const
 {
-    return (this->_receive);
+    return (this->_receiving);
 }
 
 void Client::onStop(void)
 {
+    _receiving = false;
     close(_fd);
 }
 

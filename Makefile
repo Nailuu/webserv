@@ -7,7 +7,7 @@ NAME = webserv
 SRCSDIR = srcs
 OBJSDIR = $(SRCSDIR)/objs
 
-SRCS = main ServerManager Server global Client \
+SRCS = main ServerManager Server global Client StreamReader \
 	enum/MimeType enum/HttpMethod enum/HttpStatusCode enum/AcceptedCGI \
 	request/HTTPPayload request/Request request/Response \
 	config/ConfigParser config/Route config/ServerConfig config/JSON config/Pair config/CGI

@@ -11,7 +11,7 @@ const std::string &HTTPPayload::getHttpVersion(void) const
     return (this->_httpVersion);
 }
 
-const std::map<std::string, std::string> &HTTPPayload::getFields(void) const
+const std::map<std::string, std::string> &HTTPPayload::getFields(void)
 {
     return (this->_fields);
 }

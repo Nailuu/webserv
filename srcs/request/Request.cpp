@@ -15,6 +15,7 @@ Request Request::operator=(const Request &other)
         _route = other._route;
         _path = other._path;
         _host = other._host;
+        _fields = other._fields;
     }
     return (*this);
 }

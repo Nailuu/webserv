@@ -175,9 +175,7 @@ void ServerManager::readCheck(void)
                 continue;
 
             try {
-                if (!client.second->onReceive()) {
-                    client.second->onFinishReceiving(server->getConfig());
-                }
+                client.second->onReceive(server->getConfig());
                 continue;
             } catch (std::exception &e) {}
 

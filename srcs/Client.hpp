@@ -4,32 +4,34 @@
 #include <exception>
 #include "config/ServerConfig.hpp"
 #include "request/Request.hpp"
+#include "StreamReader.hpp"
 
 #define MAX_READ 1024
 
 class Client
 {
     private:
-        char _buffer[MAX_READ + 1];
         const int _fd;
-        bool _receive;
-        int _dataIndex;
-        int _dataRead;
+        bool _headerParsed;
+        bool _receiving;
+        std::string _path;
+        size_t _contentLength;
+        StreamReader _reader;
         Request _request;
-        std::ostringstream _ossRead;
         std::string _write;
-        void onGetRequest(const Request &req, const std::string &path);
-        void onDeleteRequest(const Request &req, const std::string &path);
+        bool onHeaderReceived(const ServerConfig &config);
+        void onGetRequest(void);
+        void onDeleteRequest(void);
+        void onPostRequest(void);
     public:
         Client();
         Client(const int fd);
         ~Client();
         Client(const Client &other);
         Client operator=(const Client &other);
-        bool onReceive(void);
+        void onReceive(const ServerConfig &config);
         bool onSend(void);
-        bool isReceiving(void);
-        void onFinishReceiving(const ServerConfig &config);
+        bool isReceiving(void) const;
         void onStop(void);
         class ClientException : public std::exception
         {
