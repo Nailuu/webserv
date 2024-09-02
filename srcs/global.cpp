@@ -18,7 +18,7 @@ bool isValidDirectory(const std::string &path)
     return (false);
 }
 
-std::string highlight(const std::string& str)
+std::string highlight(const std::string& str, bool yellow)
 {
-    return (std::string(BLUE) + str + std::string(YELLOW));
+    return (std::string(BLUE) + str + (yellow ? std::string(YELLOW) : std::string(WHITE)));
 }

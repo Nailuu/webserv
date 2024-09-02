@@ -2,7 +2,7 @@
 #include "request/Response.hpp"
 #include <cstdio>
 
-Client::Client(const int fd) : _fd(fd), _receive(true), _dataIndex(0), _dataRead(0), _write("")  {}
+Client::Client(const int fd) : _fd(fd), _receive(true), _dataIndex(0), _dataRead(0), _write("") {}
 
 Client::~Client() {}
 
@@ -11,15 +11,18 @@ Client::Client(const Client &other) : _fd(other._fd), _receive(other._receive), 
     _ossRead << other._ossRead.str();
 }
 
-void Client::onGetRequest(const Request &req, const std::string &path)
+void Client::onGetRequest(const Request &req, const std::string &path, const Route *route)
 {
     (void)req;
     this->_receive = false;
 
-    try {
-        Response res = Response::getFileResponse(path);
+    try
+    {
+        Response res = Response::getFileResponse(path, route->autoIndex(), route->getRoute());
         _write = res.build();
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
         _write = res.build();
     }
@@ -50,43 +53,52 @@ void Client::onFinishReceiving(const ServerConfig &config)
 {
     std::string reqStr = _ossRead.str();
 
-    if (config.getMaxBodySize() > _dataIndex) {
+    if (config.getMaxBodySize() > _dataIndex)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST, "data/404.html");
         _write = res.build();
-        return ;
+        return;
     }
 
     _request = Request::fromString(reqStr);
 
-    //TODO: obligé d'utiliser compare sinon ça marche pas??
-    if (_request.getHttpVersion().compare("HTTP/1.1") == 0) {
+    // TODO: obligé d'utiliser compare sinon ça marche pas??
+    if (_request.getHttpVersion().compare("HTTP/1.1") == 0)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED, "data/404.html");
         _write = res.build();
-        return ;
+        return;
     }
 
     const Route *route = NULL;
 
-    try {
+    try
+    {
         route = config.getRoute(_request.getPath());
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST, "data/404.html");
         _write = res.build();
-        return ;
+        return;
     }
 
-    if (!route->isHTTPMethodAuthorized(_request.getMethod())) {
+    if (!route->isHTTPMethodAuthorized(_request.getMethod()))
+    {
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED, "data/404.html");
         _write = res.build();
-        return ;
+        return;
     }
 
     std::ostringstream path;
     std::ostringstream tempPath;
 
-    if (_request.getPath().size() > 1 && _request.getPath().at(_request.getPath().size() - 1) == '/') {
+    if (_request.getPath().size() > 1 && _request.getPath().at(_request.getPath().size() - 1) == '/')
+    {
         tempPath << _request.getPath().substr(0, _request.getPath().size() - 1);
-    } else {
+    }
+    else
+    {
         tempPath << _request.getPath();
     }
 
@@ -94,11 +106,15 @@ void Client::onFinishReceiving(const ServerConfig &config)
 
     path << route->getRoot();
 
-    if (pathStr == route->getRoute()) {
+    if (pathStr == route->getRoute())
+    {
         path << "/" << route->getIndex();
-    } else {
+    }
+    else
+    {
         pathStr = pathStr.substr(route->getRoute().size());
-        if (pathStr.at(0) != '/') {
+        if (pathStr.at(0) != '/')
+        {
             path << "/";
         }
         path << pathStr;
@@ -106,22 +122,27 @@ void Client::onFinishReceiving(const ServerConfig &config)
 
     std::cout << "Path: " << path.str() << std::endl;
 
-    if (_request.getMethod().getKey() == HttpMethod::GET.getKey()) {
-        onGetRequest(_request, path.str());
-    } else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey()) {
+    if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
+    {
+        onGetRequest(_request, path.str(), route);
+    }
+    else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey())
+    {
         onDeleteRequest(_request, path.str());
     }
 }
 
 bool Client::onReceive(void)
 {
-    if (!this->_receive) {
+    if (!this->_receive)
+    {
         throw ClientException("Input Stream Data is already stopped");
     }
 
     const int readed = read(_fd, _buffer, MAX_READ);
 
-    if (readed <= 0) {
+    if (readed <= 0)
+    {
         throw ClientException("Input Stream Data was stopped");
     }
 
@@ -135,21 +156,25 @@ bool Client::onReceive(void)
     {
         size_t headerEnd = _ossRead.str().find("\r\n\r\n");
 
-        if (headerEnd != std::string::npos) {
+        if (headerEnd != std::string::npos)
+        {
             _dataIndex = headerEnd + 4;
         }
 
         hasReachedHeaderEnd = true;
 
         _dataRead = readed - _dataIndex;
-    } else {
+    }
+    else
+    {
         _dataRead += readed;
 
         if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
         {
             std::map<std::string, std::string>::const_iterator it = _request.getFields().find("Content-Length");
 
-            if (it == _request.getFields().end()) {
+            if (it == _request.getFields().end())
+            {
                 throw ClientException("Content-Length is needed for POST");
             }
 
@@ -157,15 +182,19 @@ bool Client::onReceive(void)
 
             int length = atoi(contentLength.c_str());
 
-            if (_dataRead > length) {
+            if (_dataRead > length)
+            {
                 throw ClientException("Data too huge");
-            } else if (_dataRead == length) {
+            }
+            else if (_dataRead == length)
+            {
                 this->_receive = false;
             }
         }
     }
 
-    if (readed != MAX_READ) {
+    if (readed != MAX_READ)
+    {
         this->_receive = false;
     }
 
@@ -174,21 +203,26 @@ bool Client::onReceive(void)
 
 bool Client::onSend(void)
 {
-    if (this->_write.empty()) {
+    if (this->_write.empty())
+    {
         throw ClientException("Nothing to write");
     }
 
     std::string send;
 
-    if (_write.size() > MAX_READ) {
+    if (_write.size() > MAX_READ)
+    {
         send = _write.substr(0, MAX_READ);
         _write = _write.substr(MAX_READ);
-    } else {
+    }
+    else
+    {
         send = _write;
         _write = "";
     }
 
-    if (write(_fd, send.c_str(), send.size()) <= 0) {
+    if (write(_fd, send.c_str(), send.size()) <= 0)
+    {
         throw ClientException("Output Stream Data was stopped");
     }
 

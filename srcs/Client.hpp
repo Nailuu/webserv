@@ -9,35 +9,37 @@
 
 class Client
 {
-    private:
-        char _buffer[MAX_READ + 1];
-        const int _fd;
-        bool _receive;
-        int _dataIndex;
-        int _dataRead;
-        Request _request;
-        std::ostringstream _ossRead;
-        std::string _write;
-        void onGetRequest(const Request &req, const std::string &path);
-        void onDeleteRequest(const Request &req, const std::string &path);
+private:
+    char _buffer[MAX_READ + 1];
+    const int _fd;
+    bool _receive;
+    int _dataIndex;
+    int _dataRead;
+    Request _request;
+    std::ostringstream _ossRead;
+    std::string _write;
+    void onGetRequest(const Request &req, const std::string &path, const Route *route);
+    void onDeleteRequest(const Request &req, const std::string &path);
+
+public:
+    Client();
+    Client(const int fd);
+    ~Client();
+    Client(const Client &other);
+    Client operator=(const Client &other);
+    bool onReceive(void);
+    bool onSend(void);
+    bool isReceiving(void);
+    void onFinishReceiving(const ServerConfig &config);
+    void onStop(void);
+    class ClientException : public std::exception
+    {
     public:
-        Client();
-        Client(const int fd);
-        ~Client();
-        Client(const Client &other);
-        Client operator=(const Client &other);
-        bool onReceive(void);
-        bool onSend(void);
-        bool isReceiving(void);
-        void onFinishReceiving(const ServerConfig &config);
-        void onStop(void);
-        class ClientException : public std::exception
-        {
-        public:
-            ClientException(const std::string& message);
-            virtual ~ClientException() throw() {};
-            virtual const char* what() const throw();
-        private:
-            const std::string _message;
-        };
+        ClientException(const std::string &message);
+        virtual ~ClientException() throw() {};
+        virtual const char *what() const throw();
+
+    private:
+        const std::string _message;
+    };
 };

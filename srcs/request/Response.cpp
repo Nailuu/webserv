@@ -37,21 +37,26 @@ void Response::setContentFile(const std::string &path)
 {
     std::size_t index = path.rfind(".");
 
-    if (index == std::string::npos) {
+    if (index == std::string::npos)
+    {
         throw HTTPPayloadException("Target file does not have extension !");
     }
 
     std::string extension = path.substr(index + 1);
 
-    try {
+    try
+    {
         _mimeType = MimeType::getByExtension(extension);
-    } catch (std::runtime_error &error) {
+    }
+    catch (std::runtime_error &error)
+    {
         throw HTTPPayloadException(error.what());
     }
 
     std::ifstream file(path.c_str());
 
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         throw HTTPPayloadException("Cannot open target file: '" + highlight(path) + "'");
     }
 
@@ -68,10 +73,24 @@ const HttpStatusCode &Response::getStatusCode(void) const
     return (_statusCode);
 }
 
-const Response Response::getFileResponse(const std::string &path)
+const Response Response::getFileResponse(const std::string &path, bool autoindex, const std::string &route)
 {
     Response res("HTTP/1.1", HttpStatusCode::OK);
-    res.setContentFile(path);
+
+    if (autoindex)
+    {
+        try
+        {
+            res.setContent(AutoIndexGenerator::generate(path, route), MimeType::getByExtension("html"));
+        }
+        catch (std::exception &e)
+        {
+            throw;
+        }
+    }
+    else
+        res.setContentFile(path);
+
     res.addField("Connection", "close");
 
     return (res);

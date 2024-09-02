@@ -26,4 +26,4 @@ enum DATA_TYPES
 
 bool startsWith(const std::string &str, const std::string &prefix);
 bool isValidDirectory(const std::string &path);
-std::string highlight(const std::string& str);
+std::string highlight(const std::string& str, bool yellow = true);

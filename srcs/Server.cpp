@@ -2,8 +2,10 @@
 
 Server::Server(const ServerConfig &config) : _config(config)
 {
-    std::cout << "Launching Server on port " << _config.getPort() << std::endl;
-    std::cout << "Host of server " << _config.getHost() << std::endl;
+    std::ostringstream tmp;
+    tmp << _config.getPort();
+
+    std::cout << "Launching '" << highlight(_config.getName(), false) << "' on " << highlight(_config.getHost(), false) << ":" << highlight(tmp.str(), false) << std::endl;
 }
 
 int Server::prepareServer(void)
@@ -57,19 +59,19 @@ void Server::addClient(int fd, Client *client)
     _clients.insert(std::make_pair(fd, client));
 }
 
-void Server::removeClient(std::map<int, Client*>::iterator pos)
+void Server::removeClient(std::map<int, Client *>::iterator pos)
 {
     _clients.erase(pos);
 }
 
-std::map<int, Client*> &Server::getClients(void)
+std::map<int, Client *> &Server::getClients(void)
 {
     return (this->_clients);
 }
 
 void Server::stopClients(void) const
 {
-    std::map<int, Client*>::const_iterator it = _clients.begin();
+    std::map<int, Client *>::const_iterator it = _clients.begin();
 
     for (; it != _clients.end(); it++)
     {

@@ -25,6 +25,7 @@ public:
     const std::string &getIndex(void) const;
     const std::vector<HttpMethod> &getHTTPMethods(void) const;
     bool isHTTPMethodAuthorized(HttpMethod method) const;
+    bool autoIndex(void) const;
 
 private:
     int _max_body_size;
@@ -33,6 +34,7 @@ private:
     std::string _route;
     std::string _root;
     std::string _index;
+    std::string _redirection;
     std::vector<HttpMethod> _accepted_http_methods;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
