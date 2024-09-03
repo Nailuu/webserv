@@ -89,7 +89,7 @@ void StreamReader::onReceive(const ServerConfig &config)
 		throw ReaderException("Header is too big");
 }
 
-StreamReader::ReaderException::ReaderException(const std::string &message) : _message(std::string(RED) + "Client Error" + std::string(YELLOW) + " - " + message) {}
+StreamReader::ReaderException::ReaderException(const std::string &message) : _message(std::string(RED) + "Reader Error" + std::string(YELLOW) + " - " + message) {}
 
 const char *StreamReader::ReaderException::what() const throw()
 {

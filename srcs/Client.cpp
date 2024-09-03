@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(0), _reader(_fd), _write("")  {}
+Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(0), _reader(_fd), _write("") {}
 
 Client::~Client() {}
 
@@ -144,13 +144,20 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     _path = path.str();
 
-    std::cout << "Path: " << _path << std::endl;
-
-    if (_request.getMethod().getKey() == HttpMethod::GET.getKey()) {
+    if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
+    {
+        std::cout << GREEN << "[GET] " << GREY << _path << WHITE << std::endl;
         onGetRequest(route);
-    } else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey()) {
+    }
+    else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey())
+    {
+        std::cout << RED << "[DELETE] " << GREY << _path << WHITE << std::endl;
         onDeleteRequest();
-    } else if (_request.getMethod().getKey() == HttpMethod::POST.getKey()) {
+    }
+    else if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
+    {
+        std::cout << YELLOW << "[POST] " << GREY << _path << WHITE << std::endl;
+
         std::map<std::string, std::string> fields = _request.getFields();
         std::map<std::string, std::string>::iterator it = fields.begin();
 
@@ -162,7 +169,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
                 continue;
 
             std::istringstream iss(pair.second);
-            
+
             if (iss >> _contentLength)
             {
                 std::cout << "Content Length Value : " << _contentLength << std::endl;
@@ -180,27 +187,30 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
 void Client::onReceive(const ServerConfig &config)
 {
-    try {
+    try
+    {
         _reader.onReceive(config);
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         throw ClientException("Cannot receive from client");
     }
 
     if (!_reader.isHeaderReceived())
-        return ;
-    
+        return;
+
     if (!_headerParsed)
     {
         if (!onHeaderReceived(config))
             throw ClientException("Error in Header");
     }
-    
+
     if (_request.getMethod().getKey() != HttpMethod::POST.getKey())
         return;
 
     if (_reader.getBodySize() > _contentLength)
         throw ClientException("BodySize is too big !");
-    
+
     if (_reader.getBodySize() == _contentLength)
         onPostRequest();
 }

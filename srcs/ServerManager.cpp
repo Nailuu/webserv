@@ -57,12 +57,9 @@ void ServerManager::init(const std::string &path)
             delete server;
             throw;
         }
-
-        std::vector<ServerConfig>::const_iterator tmp = it;
-        if (++tmp != this->_configs.end())
-            std::cout << GREY << "\n------------------------------------------\n\n"
-                      << WHITE << std::endl;
     }
+
+    std::cout << GREY << "\n------------------------------------------\n" << WHITE << std::endl;
 }
 
 void ServerManager::run(void)
@@ -182,7 +179,8 @@ void ServerManager::readCheck(void)
             if (!FD_ISSET(client.first, &_readFds))
                 continue;
 
-            try {
+            try
+            {
                 client.second->onReceive(server->getConfig());
                 continue;
             }

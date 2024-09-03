@@ -5,7 +5,7 @@ Server::Server(const ServerConfig &config) : _config(config)
     std::ostringstream tmp;
     tmp << _config.getPort();
 
-    std::cout << "Launching '" << highlight(_config.getName(), false) << "' on " << highlight(_config.getHost(), false) << ":" << highlight(tmp.str(), false) << std::endl;
+    std::cout << "Launching '" << highlight(_config.getName(), false) << "' on " << "\e]8;;" << "http://" << _config.getHost() << ":" << tmp.str() << "\e\\" << GREEN << _config.getHost() + ":" + tmp.str() << WHITE << "\e]8;;\e\\" << std::endl;
 }
 
 int Server::prepareServer(void)
