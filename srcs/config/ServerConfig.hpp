@@ -28,12 +28,13 @@ public:
     const std::string &getIndex(void) const;
     const std::vector<HttpMethod> &getHTTPMethods(void) const;
     const std::vector<Route> &getRoutes(void) const;
-    const Route *getRoute(const std::string &path) const;
+    const Route *getRoute(const std::string &path, bool duplicate = false) const;
 
 private:
     int _port;
     int _max_body_size;
     bool _autoindex;
+    bool _alias;
     std::string _host;
     std::string _name;
     std::string _root;

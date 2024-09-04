@@ -1,10 +1,10 @@
 #include "Route.hpp"
 
-Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex)
+Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex, bool alias)
 {
     this->_max_body_size = maxBodySize;
-    this->_directory = false;
     this->_autoindex = autoindex;
+    this->_alias = alias;
     this->_route = route;
     this->_root = root;
     this->_index = index;
@@ -25,11 +25,8 @@ void Route::update(const std::vector<Pair> &pairs)
     if (this->_route.at(0) != '/')
         throw RouteException("Route must start with '" + highlight("/") + "': '" + highlight(this->_route) + "'");
 
-    if (this->_route.at(this->_route.size() - 1) == '/' && this->_route.size() > 1)
-        this->_directory = true;
-
-    if (this->_directory && this->_route.size() == 2)
-        throw RouteException("Route is invalid: '" + highlight(this->_route) + "'");
+    if (this->_route.at(this->_route.size() - 1) == '/')
+        throw RouteException("Route can't end with '" + highlight("/") + "': '" + highlight(this->_route) + "'");
 
     // MAX BODY SIZE
     this->validate("max_body_size", pairs, tmp, false);
@@ -55,6 +52,18 @@ void Route::update(const std::vector<Pair> &pairs)
         this->_root = tmp;
         if (!isValidDirectory(this->_root))
             throw RouteException("Path in '" + highlight("root") + "' is not a valid directory path: '" + highlight(this->_root) + "'");
+    }
+
+    // ALIAS
+    this->validate("alias", pairs, tmp, false);
+    if (!tmp.empty())
+    {
+        if (tmp == "true")
+            this->_alias = true;
+        else if (tmp == "false")
+            this->_alias = false;
+        else
+            throw RouteException("Invalid value in '" + highlight("allias") + "', expected a boolean value: '" + highlight(tmp) + "'");
     }
 
     // INDEX
@@ -159,6 +168,11 @@ bool Route::isHTTPMethodAuthorized(HttpMethod method) const
 bool Route::autoIndex(void) const
 {
     return (this->_autoindex);
+}
+
+bool Route::alias(void) const
+{
+    return (this->_alias);
 }
 
 void Route::stringToInt(const std::string &str, int &result, const std::string &context)

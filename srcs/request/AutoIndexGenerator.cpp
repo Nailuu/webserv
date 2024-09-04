@@ -56,11 +56,11 @@ const std::string AutoIndexGenerator::generate(const std::string &directory, con
 
         // Directories
         if (S_ISDIR(fileStat.st_mode))
-            html << "<tr><td><a href=\"" << route << entry->d_name << "/\">" << entry->d_name << "/</a></td><td>" << timeBuffer << "</td><td class=\"size\">-</td></tr>";
+            html << "<tr><td><a href=\"" << route << (route.at(route.size() - 1) != '/' ? "/" : "") << entry->d_name << "/\">" << entry->d_name << "/</a></td><td>" << timeBuffer << "</td><td class=\"size\">-</td></tr>";
 
         // Files
         else if (S_ISREG(fileStat.st_mode))
-            html << "<tr><td><a href=\"" << route << entry->d_name << "\">" << entry->d_name << "</a></td><td>" << timeBuffer << "</td><td class=\"size\">" << fileStat.st_size << " bytes" << "</td></tr>";
+            html << "<tr><td><a href=\"" << route << (route.at(route.size() - 1) != '/' ? "/" : "") << entry->d_name << "\">" << entry->d_name << "</a></td><td>" << timeBuffer << "</td><td class=\"size\">" << fileStat.st_size << " bytes" << "</td></tr>";
     }
 
     // Close last tags

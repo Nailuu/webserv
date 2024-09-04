@@ -186,6 +186,7 @@ void ServerManager::readCheck(void)
             }
             catch (std::exception &e)
             {
+                std::cerr << RED << "Runtime Error: " << e.what() << WHITE << std::endl;
             }
 
             removed.push_back(it);
@@ -232,6 +233,7 @@ void ServerManager::writeCheck(void)
             }
             catch (std::exception &e)
             {
+                std::cerr << RED << "Runtime Error: " << e.what() << WHITE << std::endl;
             }
 
             removed.push_back(it);

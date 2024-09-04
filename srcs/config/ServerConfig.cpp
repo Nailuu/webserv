@@ -2,7 +2,7 @@
 
 #include "../enum/HttpStatusCode.hpp"
 
-ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE), _autoindex(false) {}
+ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE), _autoindex(false), _alias(false) {}
 
 void ServerConfig::build(const std::vector<Pair> &pairs)
 {
@@ -33,6 +33,18 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
     this->validate("root", pairs, this->_root);
     if (!isValidDirectory(this->_root))
         throw ServerConfigException("Path in '" + highlight("root") + "' is not a valid directory path: '" + highlight(this->_root) + "'");
+
+    // ALIAS
+    this->validate("alias", pairs, tmp, false);
+    if (!tmp.empty())
+    {
+        if (tmp == "true")
+            this->_alias = true;
+        else if (tmp == "false")
+            this->_alias = false;
+        else
+            throw ServerConfigException("Invalid value in '" + highlight("allias") + "', expected a boolean value: '" + highlight(tmp) + "'");
+    }
 
     // INDEX
     this->validate("index", pairs, this->_index, false);
@@ -88,7 +100,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
 
         // ROUTES
         // create default route on "/" based on default settings
-        this->_routes.push_back(Route(this->_max_body_size, "/", this->_root, this->_index, this->_accepted_http_methods, this->_autoindex));
+        this->_routes.push_back(Route(this->_max_body_size, "/", this->_root, this->_index, this->_accepted_http_methods, this->_autoindex, this->_alias));
 
         // Create more routes if 'routes' is defined in the configuration JSON
         this->validate("routes", pairs, tmp, false);
@@ -98,11 +110,14 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
             for (std::vector<std::string>::const_iterator it = routes.begin(); it != routes.end(); it++)
             {
                 // Initialize route with default settings
-                Route r(this->_max_body_size, "unknown", this->_root, this->_index, this->_accepted_http_methods, this->_autoindex);
+                Route r(this->_max_body_size, "unknown", this->_root, this->_index, this->_accepted_http_methods, this->_autoindex, this->_alias);
 
                 // Overwrite default settings
                 std::vector<Pair> p = JSON::getKeysAndValuesFromObject(*it);
                 r.update(p);
+
+                if (this->getRoute(r.getRoute(), true))
+                    throw ServerConfigException("Duplicate route in '" + highlight("routes") + "': '" + highlight(r.getRoute()) + "'");
 
                 this->_routes.push_back(r);
             }
@@ -141,7 +156,7 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
                 // Check if it's a valid int
                 this->stringToInt(code, x, "errors");
 
-                HttpStatusCode *ptr;
+                HttpStatusCode *ptr = NULL;
 
                 try
                 {
@@ -217,7 +232,7 @@ const std::vector<Route> &ServerConfig::getRoutes(void) const
     return (this->_routes);
 }
 
-const Route *ServerConfig::getRoute(const std::string &path) const
+const Route *ServerConfig::getRoute(const std::string &path, bool duplicate) const
 {
     if (_routes.empty())
     {
@@ -229,16 +244,22 @@ const Route *ServerConfig::getRoute(const std::string &path) const
 
     for (; it != _routes.end(); it++)
     {
-        std::string route = (it->getRoute().at(it->getRoute().size() - 1) == '/' || it->getRoute() == path)
-                                ? it->getRoute()
-                                : it->getRoute() + "/";
-        if (startsWith(path, route) && (!lastRoute || it->getRoute().size() > lastRoute->getRoute().size()))
+        if (duplicate && it->getRoute() == path)
+            return (&(*it));
+
+        else if (!duplicate)
         {
-            lastRoute = &(*it);
+            std::string route = (it->getRoute().at(it->getRoute().size() - 1) == '/' || it->getRoute() == path)
+                                    ? it->getRoute()
+                                    : it->getRoute() + "/";
+            if (startsWith(path, route) && (!lastRoute || it->getRoute().size() > lastRoute->getRoute().size()))
+            {
+                lastRoute = &(*it);
+            }
         }
     }
 
-    if (!lastRoute)
+    if (!duplicate && !lastRoute)
     {
         throw ServerConfigException("No route was found");
     }

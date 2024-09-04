@@ -16,6 +16,7 @@ Request Request::operator=(const Request &other)
         _path = other._path;
         _host = other._host;
         _fields = other._fields;
+        _httpVersion = other._httpVersion;
     }
     return (*this);
 }
@@ -59,6 +60,11 @@ Request Request::fromString(std::string &str)
     {
         throw HTTPPayloadException("Invalid HTTP Version: '" + highlight(httpVersion) + "'");
     }
+
+    // Sanitize httpVersion remove /r
+    std::size_t pos = httpVersion.find('\r');
+    if (pos != std::string::npos)
+        httpVersion.erase(pos, 1);
 
     std::string host = extractAndValidate(str, "\n");
     if (!startsWith(host, "Host: ") || host.length() <= 6)

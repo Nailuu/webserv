@@ -81,7 +81,10 @@ const Response Response::getFileResponse(const std::string &path, bool autoindex
     {
         try
         {
-            res.setContent(AutoIndexGenerator::generate(path, route), MimeType::getByExtension("html"));
+            const std::string html = AutoIndexGenerator::generate(path, route);
+            MimeType mime = MimeType::getByExtension("html");
+
+            res.setContent(html, mime);
         }
         catch (std::exception &e)
         {

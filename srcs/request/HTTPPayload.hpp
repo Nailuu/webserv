@@ -17,7 +17,7 @@ public:
     void addField(const std::string &key, const std::string &value);
 
 protected:
-    const std::string _httpVersion;
+    std::string _httpVersion;
     std::map<std::string, std::string> _fields;
 
     // Exception class

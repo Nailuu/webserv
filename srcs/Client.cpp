@@ -31,7 +31,7 @@ void Client::onGetRequest(const Route *route)
 
     try
     {
-        Response res = Response::getFileResponse(_path, route->autoIndex(), route->getRoute());
+        Response res = Response::getFileResponse(_path, route->autoIndex(), _request.getPath());
         _write = res.build();
     }
     catch (const std::exception &e)
@@ -81,13 +81,12 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     _request = Request::fromString(header);
 
-    // TODO: obligé d'utiliser compare sinon ça marche pas??
-    if (_request.getHttpVersion().compare("HTTP/1.1") == 0)
+    if (_request.getHttpVersion() != "HTTP/1.1")
     {
         Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED);
         _write = res.build();
         _receiving = false;
-        return (false);
+        return (true);
     }
 
     const Route *route = NULL;
@@ -101,7 +100,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
         _write = res.build();
         _receiving = false;
-        return (false);
+        return (true);
     }
 
     if (!route->isHTTPMethodAuthorized(_request.getMethod()))
@@ -109,7 +108,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
         _write = res.build();
         _receiving = false;
-        return (false);
+        return (true);
     }
 
     std::ostringstream path;
@@ -130,7 +129,8 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     if (pathStr == route->getRoute())
     {
-        path << "/" << route->getIndex();
+        // If autoindex is enable, path = directory
+        path << "/" << (route->autoIndex() ? "" : route->getIndex());
     }
     else
     {
@@ -146,17 +146,17 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
     {
-        std::cout << GREEN << "[GET] " << GREY << _path << WHITE << std::endl;
+        std::cout << GREEN << "[GET] " << GREY << _request.getPath() << " -> " << highlight(_path) << WHITE << std::endl;
         onGetRequest(route);
     }
     else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey())
     {
-        std::cout << RED << "[DELETE] " << GREY << _path << WHITE << std::endl;
+        std::cout << RED << "[DELETE] " << GREY << _request.getPath() << " -> " << highlight(_path) << WHITE << std::endl;
         onDeleteRequest();
     }
     else if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
     {
-        std::cout << YELLOW << "[POST] " << GREY << _path << WHITE << std::endl;
+        std::cout << YELLOW << "[POST] " << GREY << _request.getPath() << " -> " << highlight(_path) << WHITE << std::endl;
 
         std::map<std::string, std::string> fields = _request.getFields();
         std::map<std::string, std::string>::iterator it = fields.begin();

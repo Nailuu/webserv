@@ -17,7 +17,7 @@
 class Route
 {
 public:
-    Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex);
+    Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex, bool alias);
     void update(const std::vector<Pair>& pairs);
     int getMaxBodySize(void) const;
     const std::string &getRoute(void) const;
@@ -26,11 +26,12 @@ public:
     const std::vector<HttpMethod> &getHTTPMethods(void) const;
     bool isHTTPMethodAuthorized(HttpMethod method) const;
     bool autoIndex(void) const;
+    bool alias(void) const;
 
 private:
     int _max_body_size;
-    bool _directory;
     bool _autoindex;
+    bool _alias;
     std::string _route;
     std::string _root;
     std::string _index;
