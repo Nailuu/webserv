@@ -30,6 +30,6 @@ public:
     void setContentFile(const std::string &path);
     const HttpStatusCode &getStatusCode(void) const;
     static const Response getFileResponse(const std::string &path, bool autoindex = false, const std::string &route = "");
-    static const Response getErrorResponse(const HttpStatusCode &status, const std::string &path);
+    static const Response getErrorResponse(const HttpStatusCode &status);
     const std::string build(void) const;
 };

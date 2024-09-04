@@ -46,10 +46,13 @@ void CGI::update(const std::vector<Pair> &pairs)
     std::ifstream file;
     std::string path = this->_root + (this->_root.at(this->_root.size() - 1) == '/' ? "" : "/") + this->_exec;
 
+    // Check that the cgi executable is a valid file
     file.open(path.c_str());
 
     if (file.fail())
         throw CGIException("Checks failed when trying to open CGI executable at '" + highlight(path) + "': '" + highlight(std::string(strerror(errno))) + "'");
+
+    file.close();
 
     try
     {

@@ -6,6 +6,9 @@ class HttpStatusCode: public Enum<int>
 {
     private:
         static std::vector<HttpStatusCode*> _types;
+        bool _set; // boolean is set to true if there is a html page for this code in configuration file
+        std::string _path;
+
     public:
         HttpStatusCode();
         HttpStatusCode(const std::string &key, const int value);
@@ -14,7 +17,11 @@ class HttpStatusCode: public Enum<int>
         HttpStatusCode operator=(const HttpStatusCode &other);
         static bool addTypes(void);
         static const HttpStatusCode &get(const std::string &key);
-        static const HttpStatusCode &getByValue(const int value);
+        static HttpStatusCode &getByValue(const int value);
+        void setPath(const std::string& path);
+        bool isSet(void) const;
+        const std::string& getPath(void) const;
+
         // 1xx - Informational
         static const HttpStatusCode CONTINUE;
         static const HttpStatusCode SWITCHING_PROTOCOLS;

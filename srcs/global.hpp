@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <map>
+#include <fstream>
 
 #define DEFAULT_MAX_BODY_SIZE 10000
 #define SERVER_NAME "Webserv/1.0.0"

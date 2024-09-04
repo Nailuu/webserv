@@ -70,6 +70,8 @@ void Route::update(const std::vector<Pair> &pairs)
 
         if (file.fail())
             throw RouteException("Can't open index file at '" + highlight(path) + "': '" + highlight(std::string(strerror(errno))) + "'");
+
+        file.close();
     }
 
     // DIRECTORY LISTING "autoindex"

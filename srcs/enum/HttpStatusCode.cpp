@@ -108,7 +108,7 @@ const HttpStatusCode &HttpStatusCode::get(const std::string &key)
     throw EnumException("Cannot get from key: '" + highlight(key) + "'");
 }
 
-const HttpStatusCode &HttpStatusCode::getByValue(const int value)
+HttpStatusCode &HttpStatusCode::getByValue(const int value)
 {
     std::vector<HttpStatusCode*>::iterator it = _types.begin();
 
@@ -123,6 +123,23 @@ const HttpStatusCode &HttpStatusCode::getByValue(const int value)
 
     throw EnumException("Cannot get from value");
 }
+
+void HttpStatusCode::setPath(const std::string& path)
+{
+    this->_set = true;
+    this->_path = path;
+}
+
+bool HttpStatusCode::isSet(void) const
+{
+    return (this->_set);
+}
+
+const std::string& HttpStatusCode::getPath(void) const
+{
+    return (this->_path);
+}
+
 
 static bool added = HttpStatusCode::addTypes();
 

@@ -1,5 +1,7 @@
 #include "ServerConfig.hpp"
 
+#include "../enum/HttpStatusCode.hpp"
+
 ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE), _autoindex(false) {}
 
 void ServerConfig::build(const std::vector<Pair> &pairs)
@@ -43,6 +45,8 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
 
         if (file.fail())
             throw ServerConfigException("Can't open index file at '" + highlight(path) + "': '" + highlight(std::string(strerror(errno))) + "'");
+
+        file.close();
     }
 
     // DIRECTORY LISTING "autoindex"
@@ -118,6 +122,53 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
             c.update(p);
 
             this->_cgi.push_back(c);
+        }
+
+        // ERRORS Default Pages
+        this->validate("errors", pairs, tmp, false);
+        if (!tmp.empty())
+        {
+            int x;
+
+            std::vector<std::string> tmp2 = JSON::getObjectsFromArray(tmp);
+            for (std::vector<std::string>::const_iterator it = tmp2.begin(); it != tmp2.end(); it++)
+            {
+                std::vector<Pair> pairs2 = JSON::getKeysAndValuesFromObject(*it);
+
+                std::string code;
+                this->validate("code", pairs2, code);
+
+                // Check if it's a valid int
+                this->stringToInt(code, x, "errors");
+
+                HttpStatusCode *ptr;
+
+                try
+                {
+                    // Check that the code is a valid http code
+                    HttpStatusCode &status = HttpStatusCode::getByValue(x);
+
+                    ptr = &status;
+                }
+                catch (const std::exception &e)
+                {
+                    throw ServerConfigException("HTTP Error code is not valid in '" + highlight("errors") + "': '" + highlight(code) + "'");
+                }
+
+                this->validate("file", pairs2, tmp);
+
+                // Check that the path in key is a valid file
+                std::ifstream file;
+
+                file.open(tmp.c_str());
+
+                if (file.fail())
+                    throw ServerConfigException("Can't open file at '" + highlight(tmp) + "' for error '" + highlight(code) + "': '" + highlight(std::string(strerror(errno))) + "'");
+
+                ptr->setPath(tmp);
+
+                file.close();
+            }
         }
     }
     catch (std::exception &e)

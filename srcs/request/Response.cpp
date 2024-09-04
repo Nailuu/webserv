@@ -96,10 +96,14 @@ const Response Response::getFileResponse(const std::string &path, bool autoindex
     return (res);
 }
 
-const Response Response::getErrorResponse(const HttpStatusCode &status, const std::string &path)
+const Response Response::getErrorResponse(const HttpStatusCode &status)
 {
     Response res("HTTP/1.1", status);
-    res.setContentFile(path);
+
+    // If error code has a file path set from configuration file, import the path
+    if (status.isSet())
+        res.setContentFile(status.getPath());
+
     res.addField("Connection", "close");
 
     return (res);

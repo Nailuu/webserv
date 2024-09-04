@@ -36,7 +36,7 @@ void Client::onGetRequest(const Route *route)
     }
     catch (const std::exception &e)
     {
-        Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
+        Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND);
         _write = res.build();
     }
 }
@@ -50,7 +50,7 @@ void Client::onDeleteRequest()
 
     if (file.fail() || (file.close(), std::remove(_path.c_str())))
     {
-        Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND, "data/404.html");
+        Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND);
         _write = res.build();
         return;
     }
@@ -84,7 +84,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     // TODO: obligé d'utiliser compare sinon ça marche pas??
     if (_request.getHttpVersion().compare("HTTP/1.1") == 0)
     {
-        Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED, "data/404.html");
+        Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED);
         _write = res.build();
         _receiving = false;
         return (false);
@@ -98,7 +98,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     }
     catch (const std::exception &e)
     {
-        Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST, "data/404.html");
+        Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
         _write = res.build();
         _receiving = false;
         return (false);
@@ -106,7 +106,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     if (!route->isHTTPMethodAuthorized(_request.getMethod()))
     {
-        Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED, "data/404.html");
+        Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
         _write = res.build();
         _receiving = false;
         return (false);
