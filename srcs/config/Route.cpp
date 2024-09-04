@@ -148,6 +148,11 @@ const std::string &Route::getIndex(void) const
     return (this->_index);
 }
 
+const std::string &Route::getRedirection(void) const
+{
+    return (this->_redirection);
+}
+
 const std::vector<HttpMethod> &Route::getHTTPMethods(void) const
 {
     return (this->_accepted_http_methods);
@@ -170,7 +175,7 @@ bool Route::autoIndex(void) const
     return (this->_autoindex);
 }
 
-bool Route::alias(void) const
+bool Route::isAlias(void) const
 {
     return (this->_alias);
 }
@@ -212,9 +217,15 @@ const char *Route::RouteException::what() const throw()
 std::ostream &operator<<(std::ostream &os, const Route &r)
 {
     os << "      [\"" << highlight(r.getRoute(), false) << "\"]" << std::endl;
-    os << "      Root folder: " << highlight(r.getRoot(), false) << std::endl;
-    os << "      Auto Index: " << highlight(r.autoIndex() ? "true" : "false", false) << std::endl;
-    os << "      Index file: " << highlight(r.getIndex(), false) << std::endl;
+    if (!r.getRedirection().empty())
+        os << "      Redirection: " << highlight(r.getRedirection(), false) << std::endl;
+    else
+    {
+        os << "      Root folder: " << highlight(r.getRoot(), false) << std::endl;
+        os << "      Auto index: " << highlight(r.autoIndex() ? "true" : "false", false) << std::endl;
+        os << "      Alias: " << highlight(r.isAlias() ? "true" : "false", false) << std::endl;
+        os << "      Index file: " << highlight(r.getIndex(), false) << std::endl;
+    }
 
     std::ostringstream tmp;
 

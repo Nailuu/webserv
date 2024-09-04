@@ -29,6 +29,8 @@ public:
     const std::vector<HttpMethod> &getHTTPMethods(void) const;
     const std::vector<Route> &getRoutes(void) const;
     const Route *getRoute(const std::string &path, bool duplicate = false) const;
+    bool autoIndex(void) const;
+    bool isAlias(void) const;
 
 private:
     int _port;

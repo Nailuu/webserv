@@ -267,6 +267,16 @@ const Route *ServerConfig::getRoute(const std::string &path, bool duplicate) con
     return (lastRoute);
 }
 
+bool ServerConfig::autoIndex(void) const
+{
+    return (this->_autoindex);
+}
+
+bool ServerConfig::isAlias(void) const
+{
+    return (this->_alias);
+}
+
 void ServerConfig::validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory)
 {
     bool exist = Pair::exist(key, pairs);
@@ -315,6 +325,8 @@ std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
     os << "   Host: " << highlight(sc.getHost(), false) << std::endl;
     os << "   Root folder: " << highlight(sc.getRoot(), false) << std::endl;
     os << "   Index file: " << highlight(sc.getIndex(), false) << std::endl;
+    os << "   Auto index: " << highlight(sc.autoIndex() ? "true" : "false", false) << std::endl;
+    os << "   Alias: " << highlight(sc.isAlias() ? "true" : "false", false) << std::endl;
 
     tmp.str("");
     tmp.clear();

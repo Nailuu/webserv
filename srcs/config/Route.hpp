@@ -23,10 +23,11 @@ public:
     const std::string &getRoute(void) const;
     const std::string &getRoot(void) const;
     const std::string &getIndex(void) const;
+    const std::string &getRedirection(void) const;
     const std::vector<HttpMethod> &getHTTPMethods(void) const;
     bool isHTTPMethodAuthorized(HttpMethod method) const;
     bool autoIndex(void) const;
-    bool alias(void) const;
+    bool isAlias(void) const;
 
 private:
     int _max_body_size;

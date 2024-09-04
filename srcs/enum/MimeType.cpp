@@ -8,6 +8,7 @@ const std::string TEXT_PLAIN_EXT[] = {"txt"};
 const std::string TEXT_HTML_EXT[] = {"html"};
 const std::string IMAGE_JPEG_EXT[] = {"jpg", "jpeg"};
 const std::string IMAGE_PNG_EXT[] = {"png"};
+const std::string IMAGE_SVG_EXT[] = {"svg", "ico"};
 const std::string APPLICATION_JSON_EXT[] = {"json"};
 const std::string APPLICATION_XML_EXT[] = {"xml"};
 const std::string APPLICATION_PDF_EXT[] = {"pdf"};
@@ -17,10 +18,12 @@ const MimeType MimeType::TEXT_PLAIN("TEXT_PLAIN", "text/plain", TEXT_PLAIN_EXT, 
 const MimeType MimeType::TEXT_HTML("TEXT_HTML", "text/html", TEXT_HTML_EXT, sizeof(TEXT_HTML_EXT) / sizeof(TEXT_HTML_EXT[0]));
 const MimeType MimeType::IMAGE_JPEG("IMAGE_JPEG", "image/jpeg", IMAGE_JPEG_EXT, sizeof(IMAGE_JPEG_EXT) / sizeof(IMAGE_JPEG_EXT[0]));
 const MimeType MimeType::IMAGE_PNG("IMAGE_PNG", "image/png", IMAGE_PNG_EXT, sizeof(IMAGE_PNG_EXT) / sizeof(IMAGE_PNG_EXT[0]));
+const MimeType MimeType::IMAGE_SVG("IMAGE_SVG", "image/svg+xml", IMAGE_SVG_EXT, sizeof(IMAGE_SVG_EXT) / sizeof(IMAGE_SVG_EXT[0]));
 const MimeType MimeType::APPLICATION_JSON("APPLICATION_JSON", "application/json", APPLICATION_JSON_EXT, sizeof(APPLICATION_JSON_EXT) / sizeof(APPLICATION_JSON_EXT[0]));
 const MimeType MimeType::APPLICATION_XML("APPLICATION_XML", "application/xml", APPLICATION_XML_EXT, sizeof(APPLICATION_XML_EXT) / sizeof(APPLICATION_XML_EXT[0]));
 const MimeType MimeType::APPLICATION_PDF("APPLICATION_PDF", "application/pdf", APPLICATION_PDF_EXT, sizeof(APPLICATION_PDF_EXT) / sizeof(APPLICATION_PDF_EXT[0]));
 const MimeType MimeType::APPLICATION_ZIP("APPLICATION_ZIP", "application/zip", APPLICATION_ZIP_EXT, sizeof(APPLICATION_ZIP_EXT) / sizeof(APPLICATION_ZIP_EXT[0]));
+const MimeType MimeType::APPLICATION_OCTET_STREAM("APPLICATION_OCTET_STREAM", "application/octet-stream", NULL, 0);
 
 bool MimeType::addTypes(void)
 {
@@ -28,10 +31,13 @@ bool MimeType::addTypes(void)
     _types.push_back((MimeType *)&TEXT_HTML);
     _types.push_back((MimeType *)&IMAGE_JPEG);
     _types.push_back((MimeType *)&IMAGE_PNG);
+    _types.push_back((MimeType *)&IMAGE_SVG);
     _types.push_back((MimeType *)&APPLICATION_JSON);
     _types.push_back((MimeType *)&APPLICATION_XML);
     _types.push_back((MimeType *)&APPLICATION_PDF);
     _types.push_back((MimeType *)&APPLICATION_ZIP);
+    _types.push_back((MimeType *)&APPLICATION_OCTET_STREAM);
+
     return (true);
 }
 
@@ -88,7 +94,10 @@ const MimeType &MimeType::getByExtension(const std::string &extension)
         }
     }
 
-    throw EnumException("Cannot get from extension: '" + highlight(extension) + "'");
+    // IF NOT EXTENSION WAS FOUND RETURN DEFAULT MIME : application/octet-stream
+    return (MimeType::APPLICATION_OCTET_STREAM);
+
+    // throw EnumException("Cannot get from extension: '" + highlight(extension) + "'");
 }
 
 static bool added = MimeType::addTypes();

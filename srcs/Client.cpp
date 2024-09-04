@@ -32,12 +32,14 @@ void Client::onGetRequest(const Route *route)
     try
     {
         Response res = Response::getFileResponse(_path, route->autoIndex(), _request.getPath());
-        _write = res.build();
+        _write = res.build(_request);
     }
     catch (const std::exception &e)
     {
+        std::cerr << RED << "Runtime Error: " << e.what() << WHITE << std::endl;
+
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND);
-        _write = res.build();
+        _write = res.build(_request);
     }
 }
 
@@ -51,14 +53,14 @@ void Client::onDeleteRequest()
     if (file.fail() || (file.close(), std::remove(_path.c_str())))
     {
         Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND);
-        _write = res.build();
+        _write = res.build(_request);
         return;
     }
 
     Response res = Response("HTTP/1.1", HttpStatusCode::OK);
     res.addField("Connection", "close");
     res.setContent("", MimeType::TEXT_PLAIN);
-    _write = res.build();
+    _write = res.build(_request);
 }
 
 void Client::onPostRequest()
@@ -70,7 +72,7 @@ void Client::onPostRequest()
     Response res = Response("HTTP/1.1", HttpStatusCode::OK);
     res.addField("Connection", "close");
     res.setContent("", MimeType::TEXT_PLAIN);
-    _write = res.build();
+    _write = res.build(_request);
 }
 
 bool Client::onHeaderReceived(const ServerConfig &config)
@@ -84,7 +86,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     if (_request.getHttpVersion() != "HTTP/1.1")
     {
         Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED);
-        _write = res.build();
+        _write = res.build(_request);
         _receiving = false;
         return (true);
     }
@@ -98,7 +100,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     catch (const std::exception &e)
     {
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
-        _write = res.build();
+        _write = res.build(_request);
         _receiving = false;
         return (true);
     }
@@ -106,7 +108,22 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     if (!route->isHTTPMethodAuthorized(_request.getMethod()))
     {
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
-        _write = res.build();
+        _write = res.build(_request);
+        _receiving = false;
+        return (true);
+    }
+
+    // If redirection is not empty, there is a redirection
+    if (!route->getRedirection().empty())
+    {
+        // Create redirection response
+        Response res("HTTP/1.1", HttpStatusCode::MOVED_PERMANENTLY);
+        res.addField("Connection", "close");
+
+        // Most important part
+        res.addField("Location", route->getRedirection());
+
+        _write = res.build(_request);
         _receiving = false;
         return (true);
     }
@@ -114,9 +131,12 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     std::ostringstream path;
     std::ostringstream tempPath;
 
+    bool directory = false;
+
     if (_request.getPath().size() > 1 && _request.getPath().at(_request.getPath().size() - 1) == '/')
     {
         tempPath << _request.getPath().substr(0, _request.getPath().size() - 1);
+        directory = true;
     }
     else
     {
@@ -127,6 +147,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     path << route->getRoot();
 
+    // If path is equal to route (ex: route = /directory, path = /directory) return index page
     if (pathStr == route->getRoute())
     {
         // If autoindex is enable, path = directory
@@ -134,30 +155,32 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     }
     else
     {
-        pathStr = pathStr.substr(route->getRoute().size());
-        if (pathStr.at(0) != '/')
+        // EXAMPLE: Route -> /media, Root: /data/uploads/
+        // Request = /media/file.png
+        // Alias: /data/uploads/file.png
+        // Not alias: /data/uploads/media/file.png
+        if (route->isAlias())
         {
-            path << "/";
+            pathStr = pathStr.substr(route->getRoute().size());
+            if (pathStr.at(0) != '/')
+                path << "/";
         }
-        path << pathStr;
+
+        path << pathStr << (directory ? "/" : "");
     }
 
     _path = path.str();
 
     if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
     {
-        std::cout << GREEN << "[GET] " << GREY << _request.getPath() << " -> " << highlight(_path) << WHITE << std::endl;
         onGetRequest(route);
     }
     else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey())
     {
-        std::cout << RED << "[DELETE] " << GREY << _request.getPath() << " -> " << highlight(_path) << WHITE << std::endl;
         onDeleteRequest();
     }
     else if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
     {
-        std::cout << YELLOW << "[POST] " << GREY << _request.getPath() << " -> " << highlight(_path) << WHITE << std::endl;
-
         std::map<std::string, std::string> fields = _request.getFields();
         std::map<std::string, std::string>::iterator it = fields.begin();
 

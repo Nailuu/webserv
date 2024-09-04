@@ -21,8 +21,10 @@ class MimeType: public Enum<std::string>
         static const MimeType TEXT_HTML;
         static const MimeType IMAGE_JPEG;
         static const MimeType IMAGE_PNG;
+        static const MimeType IMAGE_SVG;
         static const MimeType APPLICATION_JSON;
         static const MimeType APPLICATION_XML;
         static const MimeType APPLICATION_PDF;
         static const MimeType APPLICATION_ZIP;
+        static const MimeType APPLICATION_OCTET_STREAM;
 };
