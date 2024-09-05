@@ -67,7 +67,7 @@ void Client::onPostRequest()
 {
     _receiving = false;
 
-    std::cout << "Body: " << _reader.getBody() << std::endl;
+    // std::cout << "Body: " << _reader.getBody() << std::endl;
 
     Response res = Response("HTTP/1.1", HttpStatusCode::OK);
     res.addField("Connection", "close");
@@ -80,6 +80,8 @@ bool Client::onHeaderReceived(const ServerConfig &config)
     _headerParsed = true;
 
     std::string header = _reader.getHeader();
+
+    std::cout << header << std::endl;
 
     _request = Request::fromString(header);
 
@@ -195,7 +197,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
             if (iss >> _contentLength)
             {
-                std::cout << "Content Length Value : " << _contentLength << std::endl;
+                // std::cout << "Content Length Value : " << _contentLength << std::endl;
                 break;
             }
             else
@@ -216,7 +218,7 @@ void Client::onReceive(const ServerConfig &config)
     }
     catch (const std::exception &e)
     {
-        throw ClientException("Cannot receive from client");
+        throw ClientException("Cannot receive from client: '" + std::string(e.what()) + "'");
     }
 
     if (!_reader.isHeaderReceived())
