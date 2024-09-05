@@ -88,7 +88,7 @@ const Response Response::getFileResponse(const std::string &path, bool autoindex
 {
     Response res("HTTP/1.1", HttpStatusCode::OK);
 
-    std::cout << "Route : " << route << ", Path : " << path << std::endl;
+    // std::cout << "Route : " << route << ", Path : " << path << std::endl;
 
     // If autoindex is enabled and the path is a directory (ends with '/') previous check in Client.cpp
     if (autoindex && path.at(path.size() - 1) == '/')
@@ -128,9 +128,9 @@ const Response Response::getErrorResponse(const HttpStatusCode &status)
     return (res);
 }
 
-const std::string Response::build(const Request &req) const
+const std::string Response::build(const Request &req, const std::string &m) const
 {
-    const std::string method = req.getMethod().getValue();
+    const std::string method = (m.empty() ? req.getMethod().getValue() : m);
 
     std::string color;
     if (method == "GET")
@@ -139,6 +139,8 @@ const std::string Response::build(const Request &req) const
         color = RED;
     else if (method == "POST" || method == "PUT")
         color = YELLOW;
+    else
+        color = RED;
 
     std::cout << color << "[" << method << "] " << GREY << req.getPath() << " - " << (_statusCode.getValue() == 200 ? BLUE : YELLOW) << _statusCode.getValue() << " " << _statusCode.getKey() << WHITE << std::endl;
 

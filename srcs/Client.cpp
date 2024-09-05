@@ -107,7 +107,7 @@ bool Client::HandleRequest(const ServerConfig &config)
 
     if (!route->isHTTPMethodAuthorized(_request.getMethod()))
     {
-        std::cout << "Method not allowed!" << std::endl;
+        // std::cout << "Method not allowed!" << std::endl;
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
         _write = res.build(_request);
         _receiving = false;
@@ -207,7 +207,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     std::string header = _reader.getHeader();
 
-    std::cout << header << std::endl;
+    // std::cout << header << std::endl;
 
     try {
         _request = Request::fromString(header);
@@ -219,7 +219,11 @@ bool Client::onHeaderReceived(const ServerConfig &config)
         if (cause.find("Invalid Method") != std::string::npos)
         {
             Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
-            _write = res.build(_request);
+
+            std::string method = cause.substr(cause.find('\'') + 1);
+            method.erase(method.size() - 1);
+
+            _write = res.build(_request, method);
             _receiving = false;
             return (true);
         }

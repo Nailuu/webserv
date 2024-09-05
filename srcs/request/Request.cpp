@@ -1,9 +1,9 @@
 #include "Request.hpp"
 #include "../enum/HttpMethod.hpp"
 
-Request::Request() : HTTPPayload(""), _method(HttpMethod::GET), _path(""), _host("") {} 
+Request::Request() : HTTPPayload(""), _method(HttpMethod::GET), _path("?"), _host("") {} 
 
-Request::Request(const HttpMethod method, const std::string &path, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _path(path), _host(host) {}
+Request::Request(const HttpMethod method, const std::string &path, const std::string &params, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _path(path), _params(params), _host(host) {}
 
 Request::Request(const Request &other) : HTTPPayload(other), _method(other._method), _path(other._path), _host(other._host) {}
 
@@ -46,10 +46,20 @@ Request Request::fromString(std::string &str)
     }
     catch (const HttpMethod::EnumException &e)
     {
-        throw HTTPPayloadException("Invalid Method: '" + highlight(tmp) + "'");
+        throw HTTPPayloadException("Invalid Method: '" + tmp + "'");
     }
 
     std::string route = extractAndValidate(str, " ");
+
+    // Query params
+    std::string params;
+    std::size_t pos = route.find('?');
+    if (pos != std::string::npos)
+    {
+        params = route.substr(pos);
+        route = route.substr(0, pos);
+    }
+
     if (!startsWith(route, "/"))
     {
         throw HTTPPayloadException("Invalid Route: '" + highlight(route) + "'");
@@ -62,7 +72,7 @@ Request Request::fromString(std::string &str)
     }
 
     // Sanitize httpVersion remove /r
-    std::size_t pos = httpVersion.find('\r');
+    pos = httpVersion.find('\r');
     if (pos != std::string::npos)
         httpVersion.erase(pos, 1);
 
@@ -73,7 +83,7 @@ Request Request::fromString(std::string &str)
     }
     host = host.substr(6); // remove "Host: "
 
-    Request req((HttpMethod)method, route, httpVersion, host);
+    Request req((HttpMethod)method, route, params, httpVersion, host);
 
     // Traitement des en-têtes
     while (str.length() > 0 && (str[0] != '\r' && str[0] != '\n'))
@@ -95,6 +105,11 @@ const HttpMethod &Request::getMethod(void) const
 const std::string &Request::getPath(void) const
 {
     return (this->_path);
+}
+
+const std::string &Request::getParams(void) const
+{
+    return (this->_params);
 }
 
 const std::string &Request::getHost(void) const
