@@ -56,6 +56,9 @@ class HttpStatusCode: public Enum<int>
         static const HttpStatusCode PROXY_AUTHENTICATION_REQUIRED;
         static const HttpStatusCode REQUEST_TIMEOUT;
         static const HttpStatusCode CONFLICT;
+        static const HttpStatusCode LENGTH_REQUIRED;
+        static const HttpStatusCode PAYLOAD_TOO_LARGE;
+        static const HttpStatusCode REQUEST_HEADER_FIELDS_TOO_LARGE;
 
         // 5xx - Server Error
         static const HttpStatusCode INTERNAL_SERVER_ERROR;

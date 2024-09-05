@@ -55,11 +55,10 @@ void StreamReader::onReceive(const ServerConfig &config)
 		throw ReaderException("Input was cut");
 	
 	size_t readed = (size_t) ambigous_readed;
-	_buffer[readed] = 0;
 	
 	if (!_headerReceived)
 	{
-		_header << _buffer;
+		_header << std::string(_buffer, readed);
 
 		std::string header_str = _header.str();
 
@@ -67,8 +66,8 @@ void StreamReader::onReceive(const ServerConfig &config)
 		size_t max_length = MAX_HEADER - 4;
 
 		if ((pos == std::string::npos && header_str.length() > max_length)
-		|| pos > max_length)
-			throw ReaderException("Header is too big");
+		|| (pos != std::string::npos && pos > max_length))
+			throw ReaderException("Header size exceeds max allowed size");
 		
 		if (pos != std::string::npos)
 		{
@@ -82,11 +81,11 @@ void StreamReader::onReceive(const ServerConfig &config)
 		return;
 	}
 
-	_body << _buffer;
+	_body << std::string(_buffer, readed);
 	_bodySize = _body.str().length();
 
 	if (_bodySize > (size_t) config.getMaxBodySize())
-		throw ReaderException("Header is too big");
+		throw ReaderException("Body size exceeds max allowed size");
 }
 
 StreamReader::ReaderException::ReaderException(const std::string &message) : _message(std::string(RED) + "Reader Error" + std::string(YELLOW) + " - " + message) {}

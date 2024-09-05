@@ -67,7 +67,7 @@ void Client::onPostRequest()
 {
     _receiving = false;
 
-    // std::cout << "Body: " << _reader.getBody() << std::endl;
+    // std::cout << "Body: " << _reader.getBody().substr(_contentLength) << std::endl;
 
     Response res = Response("HTTP/1.1", HttpStatusCode::OK);
     res.addField("Connection", "close");
@@ -83,7 +83,22 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     std::cout << header << std::endl;
 
-    _request = Request::fromString(header);
+    try {
+        _request = Request::fromString(header);
+    }
+    catch (const std::exception &e)
+    {
+        const std::string cause = std::string(e.what());
+
+        if (cause.find("Invalid Method") != std::string::npos)
+        {
+            Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
+            _write = res.build(_request);
+            _receiving = false;
+            return (true);
+        }
+        throw ClientException("Invalid Request Header : " + cause);
+    }
 
     if (_request.getHttpVersion() != "HTTP/1.1")
     {
@@ -197,15 +212,34 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
             if (iss >> _contentLength)
             {
+                if (_contentLength == 0)
+                {
+                    Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
+                    _write = res.build(_request);
+                    _receiving = false;
+                    return (true);
+                }
                 // std::cout << "Content Length Value : " << _contentLength << std::endl;
                 break;
             }
             else
-                return (false);
+            {
+                Response res = Response::getErrorResponse(HttpStatusCode::LENGTH_REQUIRED);
+                _write = res.build(_request);
+                _receiving = false;
+                return (true);
+            }
+
+            break;
         }
 
         if (_contentLength == std::string::npos)
-            return (false);
+        {
+            Response res = Response::getErrorResponse(HttpStatusCode::LENGTH_REQUIRED);
+            _write = res.build(_request);
+            _receiving = false;
+            return (true);
+        }
     }
     return (true);
 }
@@ -218,6 +252,24 @@ void Client::onReceive(const ServerConfig &config)
     }
     catch (const std::exception &e)
     {
+        std::string cause = std::string(e.what());
+
+        // Body Size too big
+        if (startsWith(cause, "Body size exceeds"))
+        {
+            Response res = Response::getErrorResponse(HttpStatusCode::PAYLOAD_TOO_LARGE);
+            _write = res.build(_request);
+            _receiving = false;
+            return;
+        }
+        else if (startsWith(cause, "Header size exceeds"))
+        {
+            Response res = Response::getErrorResponse(HttpStatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE);
+            _write = res.build(_request);
+            _receiving = false;
+            return;
+        }
+
         throw ClientException("Cannot receive from client: '" + std::string(e.what()) + "'");
     }
 
@@ -230,13 +282,18 @@ void Client::onReceive(const ServerConfig &config)
             throw ClientException("Error in Header");
     }
 
-    if (_request.getMethod().getKey() != HttpMethod::POST.getKey())
+    if (_receiving == false || _request.getMethod().getKey() != HttpMethod::POST.getKey())
         return;
 
     if (_reader.getBodySize() > _contentLength)
-        throw ClientException("BodySize is too big !");
+    {
+        Response res = Response::getErrorResponse(HttpStatusCode::PAYLOAD_TOO_LARGE);
+        _write = res.build(_request);
+        _receiving = false;
+        return;
+    }
 
-    if (_reader.getBodySize() == _contentLength)
+    if (_reader.getBodySize() >= _contentLength)
         onPostRequest();
 }
 

@@ -38,6 +38,9 @@ const HttpStatusCode HttpStatusCode::NOT_ACCEPTABLE("NOT_ACCEPTABLE", 406);
 const HttpStatusCode HttpStatusCode::PROXY_AUTHENTICATION_REQUIRED("PROXY_AUTHENTICATION_REQUIRED", 407);
 const HttpStatusCode HttpStatusCode::REQUEST_TIMEOUT("REQUEST_TIMEOUT", 408);
 const HttpStatusCode HttpStatusCode::CONFLICT("CONFLICT", 409);
+const HttpStatusCode HttpStatusCode::LENGTH_REQUIRED("LENGTH_REQUIRED", 411);
+const HttpStatusCode HttpStatusCode::PAYLOAD_TOO_LARGE("PAYLOAD_TOO_LARGE", 413);
+const HttpStatusCode HttpStatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE("REQUEST_HEADER_FIELDS_TOO_LARGE", 431);
 
 // 5xx - Server Error
 const HttpStatusCode HttpStatusCode::INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", 500);
