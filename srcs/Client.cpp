@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(0), _reader(_fd), _write("") {}
+Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(std::string::npos), _reader(_fd), _write("") {}
 
 Client::~Client() {}
 
@@ -25,13 +25,13 @@ Client Client::operator=(const Client &other)
     return (*this);
 }
 
-void Client::onGetRequest(const Route *route)
+void Client::onGetRequest(bool autoIndex)
 {
     _receiving = false;
 
     try
     {
-        Response res = Response::getFileResponse(_path, route->autoIndex(), _request.getPath());
+        Response res = Response::getFileResponse(_path, autoIndex, _request.getPath());
         _write = res.build(_request);
     }
     catch (const std::exception &e)
@@ -67,7 +67,13 @@ void Client::onPostRequest()
 {
     _receiving = false;
 
-    // std::cout << "Body: " << _reader.getBody().substr(_contentLength) << std::endl;
+    std::string body = _reader.getBody();
+
+    if (_contentLength != std::string::npos) {
+        body = body.substr(_contentLength);
+    } else {
+        body = body.substr(0, body.length() - 4); // Remove "\r\n\r\n"
+    }
 
     Response res = Response("HTTP/1.1", HttpStatusCode::OK);
     res.addField("Connection", "close");
@@ -75,31 +81,8 @@ void Client::onPostRequest()
     _write = res.build(_request);
 }
 
-bool Client::onHeaderReceived(const ServerConfig &config)
+bool Client::HandleRequest(const ServerConfig &config)
 {
-    _headerParsed = true;
-
-    std::string header = _reader.getHeader();
-
-    std::cout << header << std::endl;
-
-    try {
-        _request = Request::fromString(header);
-    }
-    catch (const std::exception &e)
-    {
-        const std::string cause = std::string(e.what());
-
-        if (cause.find("Invalid Method") != std::string::npos)
-        {
-            Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
-            _write = res.build(_request);
-            _receiving = false;
-            return (true);
-        }
-        throw ClientException("Invalid Request Header : " + cause);
-    }
-
     if (_request.getHttpVersion() != "HTTP/1.1")
     {
         Response res = Response::getErrorResponse(HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED);
@@ -124,6 +107,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     if (!route->isHTTPMethodAuthorized(_request.getMethod()))
     {
+        std::cout << "Method not allowed!" << std::endl;
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
         _write = res.build(_request);
         _receiving = false;
@@ -164,39 +148,87 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     path << route->getRoot();
 
-    // If path is equal to route (ex: route = /directory, path = /directory) return index page
+    // Fix : Enable auto index only if path is equal to route
+    bool autoIndex = false;
+
+    // Fix : Returns index page if path starts with route and points a folder (ex: route = /directory, path = /directory/nop)
     if (pathStr == route->getRoute())
     {
         // If autoindex is enable, path = directory
+        autoIndex = true;
         path << "/" << (route->autoIndex() ? "" : route->getIndex());
     }
     else
     {
-        // EXAMPLE: Route -> /media, Root: /data/uploads/
-        // Request = /media/file.png
-        // Alias: /data/uploads/file.png
-        // Not alias: /data/uploads/media/file.png
-        if (route->isAlias())
-        {
-            pathStr = pathStr.substr(route->getRoute().size());
-            if (pathStr.at(0) != '/')
-                path << "/";
-        }
+        // Test if points a directory
+        struct stat statBuf;
 
-        path << pathStr << (directory ? "/" : "");
+        std::string test_path = path.str() + "/" + pathStr.substr(route->getRoute().length());
+    
+        // If points a directory, redirects to index
+        if (stat(test_path.c_str(), &statBuf) == 0 && S_ISDIR(statBuf.st_mode))
+        {
+            path << pathStr.substr(route->getRoute().length()) << "/" << route->getIndex();
+        }
+        else
+        {
+            // EXAMPLE: Route -> /media, Root: /data/uploads/
+            // Request = /media/file.png
+            // Alias: /data/uploads/file.png
+            // Not alias: /data/uploads/media/file.png
+            if (route->isAlias())
+            {
+                pathStr = pathStr.substr(route->getRoute().size());
+                if (pathStr.at(0) != '/')
+                    path << "/";
+            }
+
+            path << pathStr << (directory ? "/" : "");
+        }
     }
 
     _path = path.str();
 
     if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
     {
-        onGetRequest(route);
+        onGetRequest(autoIndex);
     }
     else if (_request.getMethod().getKey() == HttpMethod::DELETE.getKey())
     {
         onDeleteRequest();
     }
-    else if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
+
+    return (true);
+}
+
+bool Client::onHeaderReceived(const ServerConfig &config)
+{
+    _headerParsed = true;
+
+    std::string header = _reader.getHeader();
+
+    std::cout << header << std::endl;
+
+    try {
+        _request = Request::fromString(header);
+    }
+    catch (const std::exception &e)
+    {
+        const std::string cause = std::string(e.what());
+
+        if (cause.find("Invalid Method") != std::string::npos)
+        {
+            Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
+            _write = res.build(_request);
+            _receiving = false;
+            return (true);
+        }
+        throw ClientException("Invalid Request Header : " + cause);
+    }
+
+    // If request is POST, only do checks after whole content is received
+
+    if (_request.getMethod().getKey() == HttpMethod::POST.getKey())
     {
         std::map<std::string, std::string> fields = _request.getFields();
         std::map<std::string, std::string>::iterator it = fields.begin();
@@ -212,6 +244,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
             if (iss >> _contentLength)
             {
+                //std::cout << "Content Length Value : " << _contentLength << std::endl;
                 if (_contentLength == 0)
                 {
                     Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
@@ -219,33 +252,28 @@ bool Client::onHeaderReceived(const ServerConfig &config)
                     _receiving = false;
                     return (true);
                 }
-                // std::cout << "Content Length Value : " << _contentLength << std::endl;
+                else if (_contentLength > (size_t) config.getMaxBodySize())
+                {
+                    Response res = Response::getErrorResponse(HttpStatusCode::PAYLOAD_TOO_LARGE);
+                    _write = res.build(_request);
+                    _receiving = false;
+                    return (true);
+                }
                 break;
-            }
-            else
-            {
-                Response res = Response::getErrorResponse(HttpStatusCode::LENGTH_REQUIRED);
-                _write = res.build(_request);
-                _receiving = false;
-                return (true);
             }
 
             break;
         }
-
-        if (_contentLength == std::string::npos)
-        {
-            Response res = Response::getErrorResponse(HttpStatusCode::LENGTH_REQUIRED);
-            _write = res.build(_request);
-            _receiving = false;
-            return (true);
-        }
     }
-    return (true);
+
+    return (HandleRequest(config));
 }
 
 void Client::onReceive(const ServerConfig &config)
 {
+    if (!_receiving)
+        return ;
+    
     try
     {
         _reader.onReceive(config);
@@ -255,14 +283,14 @@ void Client::onReceive(const ServerConfig &config)
         std::string cause = std::string(e.what());
 
         // Body Size too big
-        if (startsWith(cause, "Body size exceeds"))
+        if (cause.find("Body size exceeds") != std::string::npos)
         {
             Response res = Response::getErrorResponse(HttpStatusCode::PAYLOAD_TOO_LARGE);
             _write = res.build(_request);
             _receiving = false;
             return;
         }
-        else if (startsWith(cause, "Header size exceeds"))
+        else if (cause.find("Header size exceeds") != std::string::npos)
         {
             Response res = Response::getErrorResponse(HttpStatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE);
             _write = res.build(_request);
@@ -293,8 +321,23 @@ void Client::onReceive(const ServerConfig &config)
         return;
     }
 
-    if (_reader.getBodySize() >= _contentLength)
-        onPostRequest();
+    // If contentLength is present
+    if (_contentLength != std::string::npos)
+    {
+        if (_reader.getBodySize() >= _contentLength)
+            HandleRequest(config);
+    }
+    else
+    {
+        // Check if end of content is \r\n\r\n
+
+        std::string body = _reader.getBody();
+
+        size_t pos = body.find("\r\n\r\n");
+
+        if (pos != std::string::npos && pos + 4 == body.length())
+            onPostRequest();
+    }
 }
 
 bool Client::onSend(void)

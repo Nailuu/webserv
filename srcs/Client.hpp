@@ -19,8 +19,9 @@ class Client
         StreamReader _reader;
         Request _request;
         std::string _write;
+        bool HandleRequest(const ServerConfig &config);
         bool onHeaderReceived(const ServerConfig &config);
-        void onGetRequest(const Route *route);
+        void onGetRequest(bool autoIndex);
         void onDeleteRequest(void);
         void onPostRequest(void);
     public:

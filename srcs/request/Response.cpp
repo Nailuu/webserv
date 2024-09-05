@@ -53,10 +53,21 @@ void Response::setContentFile(const std::string &path)
         throw HTTPPayloadException(error.what());
     }
 
+    struct stat statBuf;
+    
+    // Verify that file exists
+    if (stat(path.c_str(), &statBuf) != 0) {
+        throw HTTPPayloadException("File does not exist: '" + highlight(path) + "'");
+    }
+    
+    // Verify that path does not points to a directory
+    if (S_ISDIR(statBuf.st_mode)) {
+        throw HTTPPayloadException("Path points to a directory, not a file: '" + highlight(path) + "'");
+    }
+
     std::ifstream file(path.c_str());
 
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         throw HTTPPayloadException("Cannot open target file: '" + highlight(path) + "'");
     }
 
@@ -77,6 +88,8 @@ const Response Response::getFileResponse(const std::string &path, bool autoindex
 {
     Response res("HTTP/1.1", HttpStatusCode::OK);
 
+    std::cout << "Route : " << route << ", Path : " << path << std::endl;
+
     // If autoindex is enabled and the path is a directory (ends with '/') previous check in Client.cpp
     if (autoindex && path.at(path.size() - 1) == '/')
     {
@@ -93,7 +106,9 @@ const Response Response::getFileResponse(const std::string &path, bool autoindex
         }
     }
     else
+    {
         res.setContentFile(path);
+    }
 
     res.addField("Connection", "close");
 
