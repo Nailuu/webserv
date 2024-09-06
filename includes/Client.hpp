@@ -2,9 +2,11 @@
 
 #include <sstream>
 #include <exception>
-#include "config/ServerConfig.hpp"
-#include "request/Request.hpp"
+
+#include "ServerConfig.hpp"
+#include "Request.hpp"
 #include "StreamReader.hpp"
+#include "CGIENV.hpp"
 
 #define MAX_READ 1024
 
@@ -24,6 +26,8 @@ class Client
         void onGetRequest(bool autoIndex);
         void onDeleteRequest(void);
         void onPostRequest(void);
+        void onCGIRequest(CGIENV &envs);
+
     public:
         Client();
         Client(const int fd);
@@ -34,6 +38,8 @@ class Client
         bool onSend(void);
         bool isReceiving(void) const;
         void onStop(void);
+
+        // Exception class
         class ClientException : public std::exception
         {
         public:

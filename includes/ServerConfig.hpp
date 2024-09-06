@@ -8,40 +8,30 @@
 #include <cerrno>
 #include <cstring>
 
-#include "../global.hpp"
+#include "global.hpp"
 #include "Route.hpp"
 #include "Pair.hpp"
 #include "JSON.hpp"
-#include "VectorDebugger.hpp"
 #include "CGI.hpp"
+#include "AConfiguration.hpp"
 
-class ServerConfig
+class ServerConfig : public AConfiguration
 {
 public:
     ServerConfig();
     void build(const std::vector<Pair> &pairs);
     int getPort(void) const;
-    int getMaxBodySize(void) const;
     const std::string &getHost(void) const;
     const std::string &getName(void) const;
-    const std::string &getRoot(void) const;
-    const std::string &getIndex(void) const;
-    const std::vector<HttpMethod> &getHTTPMethods(void) const;
     const std::vector<Route> &getRoutes(void) const;
+    const std::vector<CGI> &getCGIs(void) const;
     const Route *getRoute(const std::string &path, bool duplicate = false) const;
-    bool autoIndex(void) const;
-    bool isAlias(void) const;
+    const CGI *getCGI(const std::string &path) const;
 
 private:
     int _port;
-    int _max_body_size;
-    bool _autoindex;
-    bool _alias;
     std::string _host;
     std::string _name;
-    std::string _root;
-    std::string _index;
-    std::vector<HttpMethod> _accepted_http_methods;
     std::vector<Route> _routes;
     std::vector<CGI> _cgi;
     void stringToInt(const std::string &str, int &result, const std::string &context);

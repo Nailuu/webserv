@@ -5,7 +5,7 @@
 #include <exception>
 #include <map>
 
-#include "config/ConfigParser.hpp"
+#include "ConfigParser.hpp"
 #include "Server.hpp"
 
 class ServerManager

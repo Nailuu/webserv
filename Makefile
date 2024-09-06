@@ -1,33 +1,42 @@
 CC = c++
 
-CPPFLAGS = -std=c++98 -Wall -Wextra -Werror -g
+CPPFLAGS = -std=c++98 -Wall -Wextra -Werror -g -Iincludes
 
 NAME = webserv 
 
 SRCSDIR = srcs
 OBJSDIR = $(SRCSDIR)/objs
 
-SRCS = main ServerManager Server global Client StreamReader \
+SRCS = main ServerManager Server global StreamReader \
 	enum/MimeType enum/HttpMethod enum/HttpStatusCode enum/AcceptedCGI \
-	request/HTTPPayload request/Request request/Response request/AutoIndexGenerator \
-	config/ConfigParser config/Route config/ServerConfig config/JSON config/Pair config/CGI
+	request/HTTPPayload request/Request request/Response request/AutoIndexGenerator request/CGIENV request/Client \
+	config/ConfigParser config/Route config/ServerConfig config/JSON config/Pair config/CGI config/AConfiguration
 
 OBJS = $(addprefix $(OBJSDIR)/, $(SRCS:=.o))
+
+RED = \033[0;31m
+GREEN = \033[0;32m
+BLUE = \033[94m
+RESET = \033[0m
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CC) $(OBJS) -o $(NAME)
+	@$(CC) $(OBJS) -o $(NAME)
+	@echo "$(BLUE)created: $(RESET)$(NAME)"
 
 $(OBJS): $(OBJSDIR)/%.o: $(SRCSDIR)/%.cpp
-	mkdir -p $(@D)
-	$(CC) $(CPPFLAGS) -c $< -o $@
+	@mkdir -p $(@D)
+	@$(CC) $(CPPFLAGS) -c $< -o $@
+	@echo "$(GREEN)compiled: $(RESET)$<"
 
 clean:
-	rm -rf $(OBJSDIR)
+	@rm -rf $(OBJSDIR)
+	@echo "$(RED)deleted: $(RESET)$(OBJSDIR)"
 
 fclean: clean
-	rm -f $(NAME)
+	@rm -f $(NAME)
+	@echo "$(RED)deleted: $(RESET)$(NAME)"
 
 re: fclean all
 

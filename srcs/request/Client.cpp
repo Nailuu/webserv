@@ -1,8 +1,10 @@
 #include "Client.hpp"
-#include "request/Response.hpp"
+#include "Response.hpp"
+
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <sys/wait.h>
 
 Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(std::string::npos), _reader(_fd), _write("") {}
 
@@ -69,9 +71,12 @@ void Client::onPostRequest()
 
     std::string body = _reader.getBody();
 
-    if (_contentLength != std::string::npos) {
+    if (_contentLength != std::string::npos)
+    {
         body = body.substr(_contentLength);
-    } else {
+    }
+    else
+    {
         body = body.substr(0, body.length() - 4); // Remove "\r\n\r\n"
     }
 
@@ -79,6 +84,77 @@ void Client::onPostRequest()
     res.addField("Connection", "close");
     res.setContent("", MimeType::TEXT_PLAIN);
     _write = res.build(_request);
+}
+
+void Client::onCGIRequest(CGIENV &envs)
+{
+    // envs.print();
+
+    int pipeIn[2];  // Input
+    int pipeOut[2]; // Output
+
+    if (pipe(pipeIn) == -1 || pipe(pipeOut) == -1)
+        throw ClientException("Cannot create pipes");
+
+    pid_t pid = fork();
+
+    if (pid == -1)
+        throw ClientException("Cannot create fork");
+
+    else if (pid == 0)
+    {
+        // Redirect STDIN and STDOUT
+        dup2(pipeIn[0], STDIN_FILENO);
+        dup2(pipeOut[1], STDOUT_FILENO);
+
+        close(pipeIn[1]);
+        close(pipeOut[0]);
+
+        char **envp = envs.getEnvs();
+
+        char **args = NULL;
+
+        const std::string &path = envs.getByKey("SCRIPT_FILENAME");
+        execve(path.c_str(), args, envp);
+
+        // If execve failed the execution will continue
+        std::cout << strerror(errno);
+        exit(1);
+    }
+    else
+    {
+        close(pipeIn[0]);
+        close(pipeOut[1]);
+        close(pipeIn[1]);
+
+        // Read CGI output
+        char buffer[1024];
+        ssize_t bytesRead;
+        while ((bytesRead = read(pipeOut[0], buffer, sizeof(buffer) - 1)) > 0)
+            buffer[bytesRead] = '\0';
+
+        close(pipeOut[0]);
+
+        std::ostringstream output;
+        output << buffer;
+
+        // Wait for the child process to finish
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WEXITSTATUS(status) != 0)
+            throw ClientException("CGI execution with execve() failed: '" + highlight(output.str()) + "'");
+
+        _receiving = false;
+
+        Response res("HTTP/1.1", HttpStatusCode::OK);
+        res.setContent(output.str(), MimeType::TEXT_PLAIN);
+        res.addField("Connection", "close");
+
+        _write = res.build(_request);
+
+        std::cout << _write << std::endl;
+    }
 }
 
 bool Client::HandleRequest(const ServerConfig &config)
@@ -105,7 +181,10 @@ bool Client::HandleRequest(const ServerConfig &config)
         return (true);
     }
 
-    if (!route->isHTTPMethodAuthorized(_request.getMethod()))
+    // Check if path is CGI
+    const CGI *cgi = config.getCGI(_request.getPath());
+
+    if ((cgi == NULL && !route->isHTTPMethodAuthorized(_request.getMethod())) || (cgi != NULL && !cgi->isHTTPMethodAuthorized(_request.getMethod())))
     {
         // std::cout << "Method not allowed!" << std::endl;
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
@@ -115,7 +194,7 @@ bool Client::HandleRequest(const ServerConfig &config)
     }
 
     // If redirection is not empty, there is a redirection
-    if (!route->getRedirection().empty())
+    if (!cgi && !route->getRedirection().empty())
     {
         // Create redirection response
         Response res("HTTP/1.1", HttpStatusCode::MOVED_PERMANENTLY);
@@ -164,7 +243,7 @@ bool Client::HandleRequest(const ServerConfig &config)
         struct stat statBuf;
 
         std::string test_path = path.str() + "/" + pathStr.substr(route->getRoute().length());
-    
+
         // If points a directory, redirects to index
         if (stat(test_path.c_str(), &statBuf) == 0 && S_ISDIR(statBuf.st_mode))
         {
@@ -189,7 +268,23 @@ bool Client::HandleRequest(const ServerConfig &config)
 
     _path = path.str();
 
-    if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
+    if (cgi)
+    {
+        CGIENV envs;
+
+        // Build CGI environment variables
+        try
+        {
+            envs = CGIENV(config, this->_request, cgi);
+        }
+        catch (const std::exception &e)
+        {
+            throw;
+        }
+
+        onCGIRequest(envs);
+    }
+    else if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
     {
         onGetRequest(autoIndex);
     }
@@ -209,7 +304,8 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     // std::cout << header << std::endl;
 
-    try {
+    try
+    {
         _request = Request::fromString(header);
     }
     catch (const std::exception &e)
@@ -248,7 +344,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
             if (iss >> _contentLength)
             {
-                //std::cout << "Content Length Value : " << _contentLength << std::endl;
+                // std::cout << "Content Length Value : " << _contentLength << std::endl;
                 if (_contentLength == 0)
                 {
                     Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
@@ -256,7 +352,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
                     _receiving = false;
                     return (true);
                 }
-                else if (_contentLength > (size_t) config.getMaxBodySize())
+                else if (_contentLength > (size_t)config.getMaxBodySize())
                 {
                     Response res = Response::getErrorResponse(HttpStatusCode::PAYLOAD_TOO_LARGE);
                     _write = res.build(_request);
@@ -276,8 +372,8 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 void Client::onReceive(const ServerConfig &config)
 {
     if (!_receiving)
-        return ;
-    
+        return;
+
     try
     {
         _reader.onReceive(config);

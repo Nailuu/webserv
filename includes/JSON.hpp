@@ -6,7 +6,7 @@
 #include <exception>
 
 #include "Pair.hpp"
-#include "../global.hpp"
+#include "global.hpp"
 
 class JSON
 {

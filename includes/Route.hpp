@@ -8,36 +8,23 @@
 #include <cerrno>
 #include <cstring>
 
-#include "../global.hpp"
+#include "global.hpp"
 #include "Pair.hpp"
-#include "VectorDebugger.hpp"
 #include "JSON.hpp"
-#include "../enum/HttpMethod.hpp"
+#include "HttpMethod.hpp"
+#include "AConfiguration.hpp"
 
-class Route
+class Route : public AConfiguration
 {
 public:
     Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex, bool alias);
     void update(const std::vector<Pair>& pairs);
-    int getMaxBodySize(void) const;
     const std::string &getRoute(void) const;
-    const std::string &getRoot(void) const;
-    const std::string &getIndex(void) const;
     const std::string &getRedirection(void) const;
-    const std::vector<HttpMethod> &getHTTPMethods(void) const;
-    bool isHTTPMethodAuthorized(HttpMethod method) const;
-    bool autoIndex(void) const;
-    bool isAlias(void) const;
 
 private:
-    int _max_body_size;
-    bool _autoindex;
-    bool _alias;
     std::string _route;
-    std::string _root;
-    std::string _index;
     std::string _redirection;
-    std::vector<HttpMethod> _accepted_http_methods;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 

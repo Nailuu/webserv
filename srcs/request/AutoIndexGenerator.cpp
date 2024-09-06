@@ -8,7 +8,7 @@
 #include <cstring>
 #include <sys/stat.h>
 
-#include "../global.hpp"
+#include "global.hpp"
 
 AutoIndexGenerator::~AutoIndexGenerator() {};
 

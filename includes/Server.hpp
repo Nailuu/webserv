@@ -12,9 +12,9 @@
 #include <sys/select.h>
 
 #include "global.hpp"
-#include "config/ServerConfig.hpp"
-#include "request/Request.hpp"
-#include "request/Response.hpp"
+#include "ServerConfig.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 #include "Client.hpp"
 
 class Server

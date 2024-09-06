@@ -8,10 +8,10 @@
 #include <fstream>
 #include <stdlib.h>
 
-#include "../global.hpp"
+#include "global.hpp"
 #include "HTTPPayload.hpp"
-#include "../enum/MimeType.hpp"
-#include "../enum/HttpStatusCode.hpp"
+#include "MimeType.hpp"
+#include "HttpStatusCode.hpp"
 #include "AutoIndexGenerator.hpp"
 #include "Request.hpp"
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <exception>
 
-#include "../global.hpp"
+#include "global.hpp"
 
 class HTTPPayload
 {
@@ -13,7 +13,8 @@ public:
     HTTPPayload(const std::string &httpVersion);
     HTTPPayload(const HTTPPayload &other);
     const std::string &getHttpVersion(void) const;
-    const std::map<std::string, std::string> &getFields(void);
+    const std::map<std::string, std::string> &getFields(void) const;
+    const std::string &getFieldsValueByName(const std::string &key) const;
     void addField(const std::string &key, const std::string &value);
 
 protected:

@@ -6,23 +6,24 @@
 #include <cerrno>
 #include <cstring>
 
-#include "../enum/HttpMethod.hpp"
-#include "../enum/AcceptedCGI.hpp"
-#include "../global.hpp"
+#include "HttpMethod.hpp"
+#include "AcceptedCGI.hpp"
+#include "global.hpp"
 #include "Pair.hpp"
 #include "JSON.hpp"
+#include "AConfiguration.hpp"
 
-class CGI
+class CGI : public AConfiguration
 {
 public:
     CGI(const std::string &root, const std::vector<HttpMethod> &methods);
     void update(const std::vector<Pair> &pairs);
+    const std::string &getType(void) const;
+    const std::string &getExec(void) const;
 
 private:
     std::string _type;
-    std::string _root;
     std::string _exec;
-    std::vector<HttpMethod> _accepted_http_methods;
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 
     // Exception class
@@ -37,3 +38,5 @@ private:
         const std::string _message;
     };
 };
+
+std::ostream& operator<<(std::ostream& os, const CGI& c);

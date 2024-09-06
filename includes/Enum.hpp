@@ -5,7 +5,7 @@
 #include <string>
 #include <exception>
 
-#include "../global.hpp"
+#include "global.hpp"
 
 // Forward declare the template function
 template<typename T>
@@ -41,4 +41,4 @@ class Enum
         };
 };
 
-#include "Enum.tpp"
+#include "../srcs/enum/Enum.tpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HTTPPayload.hpp"
-#include "../enum/HttpMethod.hpp"
+#include "HttpMethod.hpp"
 
 class Request : public HTTPPayload
 {

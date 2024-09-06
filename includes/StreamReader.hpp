@@ -1,8 +1,9 @@
 #pragma once
 
-#include "config/ServerConfig.hpp"
 #include <sstream>
 #include <exception>
+
+#include "ServerConfig.hpp"
 
 #define MAX_HEADER 4096
 #define READ_CHUNK 4096

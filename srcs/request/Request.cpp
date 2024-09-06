@@ -1,7 +1,7 @@
 #include "Request.hpp"
-#include "../enum/HttpMethod.hpp"
+#include "HttpMethod.hpp"
 
-Request::Request() : HTTPPayload(""), _method(HttpMethod::GET), _path("?"), _host("") {} 
+Request::Request() : HTTPPayload(""), _method(HttpMethod::GET), _path("?"), _host("") {}
 
 Request::Request(const HttpMethod method, const std::string &path, const std::string &params, const std::string &httpVersion, const std::string &host) : HTTPPayload(httpVersion), _method(method), _path(path), _params(params), _host(host) {}
 
@@ -17,6 +17,7 @@ Request Request::operator=(const Request &other)
         _host = other._host;
         _fields = other._fields;
         _httpVersion = other._httpVersion;
+        _params = other._params;
     }
     return (*this);
 }
@@ -56,7 +57,7 @@ Request Request::fromString(std::string &str)
     std::size_t pos = route.find('?');
     if (pos != std::string::npos)
     {
-        params = route.substr(pos);
+        params = route.substr(pos + 1);
         route = route.substr(0, pos);
     }
 

@@ -101,6 +101,8 @@ void Route::update(const std::vector<Pair> &pairs)
         this->validate("allowed_methods", pairs, tmp, false);
         if (!tmp.empty())
         {
+            this->_accepted_http_methods.clear();
+
             std::vector<std::string> methods = JSON::getValuesFromArray(tmp);
             if (!methods.size())
                 throw RouteException("Expected at least one HTTP method in '" + highlight("allowed_methods") + "'");
@@ -128,56 +130,14 @@ void Route::update(const std::vector<Pair> &pairs)
     }
 }
 
-int Route::getMaxBodySize(void) const
-{
-    return (this->_max_body_size);
-}
-
 const std::string &Route::getRoute(void) const
 {
     return (this->_route);
 }
 
-const std::string &Route::getRoot(void) const
-{
-    return (this->_root);
-}
-
-const std::string &Route::getIndex(void) const
-{
-    return (this->_index);
-}
-
 const std::string &Route::getRedirection(void) const
 {
     return (this->_redirection);
-}
-
-const std::vector<HttpMethod> &Route::getHTTPMethods(void) const
-{
-    return (this->_accepted_http_methods);
-}
-
-bool Route::isHTTPMethodAuthorized(HttpMethod method) const
-{
-    std::vector<HttpMethod>::const_iterator it = this->_accepted_http_methods.begin();
-    for (; it != this->_accepted_http_methods.end(); it++)
-    {
-        if ((*it) == method)
-            return (true);
-    }
-
-    return (false);
-}
-
-bool Route::autoIndex(void) const
-{
-    return (this->_autoindex);
-}
-
-bool Route::isAlias(void) const
-{
-    return (this->_alias);
 }
 
 void Route::stringToInt(const std::string &str, int &result, const std::string &context)

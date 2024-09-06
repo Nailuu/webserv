@@ -12,7 +12,6 @@
 #include "ServerConfig.hpp"
 #include "JSON.hpp"
 #include "Pair.hpp"
-#include "VectorDebugger.hpp"
 
 class ConfigParser
 {

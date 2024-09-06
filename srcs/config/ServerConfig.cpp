@@ -1,8 +1,10 @@
 #include "ServerConfig.hpp"
+#include "HttpStatusCode.hpp"
 
-#include "../enum/HttpStatusCode.hpp"
-
-ServerConfig::ServerConfig() : _max_body_size(DEFAULT_MAX_BODY_SIZE), _autoindex(false), _alias(false) {}
+ServerConfig::ServerConfig()
+{
+    this->_max_body_size = DEFAULT_MAX_BODY_SIZE;
+}
 
 void ServerConfig::build(const std::vector<Pair> &pairs)
 {
@@ -197,11 +199,6 @@ int ServerConfig::getPort(void) const
     return (this->_port);
 }
 
-int ServerConfig::getMaxBodySize(void) const
-{
-    return (this->_max_body_size);
-}
-
 const std::string &ServerConfig::getHost(void) const
 {
     return (this->_host);
@@ -212,24 +209,14 @@ const std::string &ServerConfig::getName(void) const
     return (this->_name);
 }
 
-const std::string &ServerConfig::getRoot(void) const
-{
-    return (this->_root);
-}
-
-const std::string &ServerConfig::getIndex(void) const
-{
-    return (this->_index);
-}
-
-const std::vector<HttpMethod> &ServerConfig::getHTTPMethods(void) const
-{
-    return (this->_accepted_http_methods);
-}
-
 const std::vector<Route> &ServerConfig::getRoutes(void) const
 {
     return (this->_routes);
+}
+
+const std::vector<CGI> &ServerConfig::getCGIs(void) const
+{
+    return (this->_cgi);
 }
 
 const Route *ServerConfig::getRoute(const std::string &path, bool duplicate) const
@@ -267,14 +254,28 @@ const Route *ServerConfig::getRoute(const std::string &path, bool duplicate) con
     return (lastRoute);
 }
 
-bool ServerConfig::autoIndex(void) const
+const CGI *ServerConfig::getCGI(const std::string &path) const
 {
-    return (this->_autoindex);
-}
+    if (_cgi.empty())
+    {
+        throw ServerConfigException("No CGI was registered");
+    }
 
-bool ServerConfig::isAlias(void) const
-{
-    return (this->_alias);
+    std::size_t pos = path.find_last_of('.');
+    if (pos == std::string::npos)
+        return (NULL);
+
+    std::string extension = path.substr(pos);
+    if (extension.size() == 1)
+        return (NULL);
+
+    for (std::vector<CGI>::const_iterator it = _cgi.begin(); it != _cgi.end(); it++)
+    {
+        if (it->getType() == extension)
+            return (&(*it));
+    }
+
+    return (NULL);
 }
 
 void ServerConfig::validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory)
@@ -339,9 +340,15 @@ std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
         std::cout << (it == methods.begin() ? "" : ", ") << highlight((HttpMethod(*it)).getKey(), false);
     os << std::endl;
 
-    os << "\n   Routes: " << std::endl;
+    os << YELLOW << "\n   Routes: " << WHITE << std::endl;
     const std::vector<Route> routes = sc.getRoutes();
     for (std::vector<Route>::const_iterator it = routes.begin(); it != routes.end(); it++)
+        std::cout << "\n"
+                  << (*it) << std::endl;
+
+    os << YELLOW << "\n   CGI: " << WHITE << std::endl;
+    const std::vector<CGI> cgis = sc.getCGIs();
+    for (std::vector<CGI>::const_iterator it = cgis.begin(); it != cgis.end(); it++)
         std::cout << "\n"
                   << (*it) << std::endl;
 

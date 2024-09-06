@@ -44,13 +44,12 @@ void CGI::update(const std::vector<Pair> &pairs)
     this->validate("exec", pairs, this->_exec);
 
     std::ifstream file;
-    std::string path = this->_root + (this->_root.at(this->_root.size() - 1) == '/' ? "" : "/") + this->_exec;
 
     // Check that the cgi executable is a valid file
-    file.open(path.c_str());
+    file.open(this->_exec.c_str());
 
     if (file.fail())
-        throw CGIException("Checks failed when trying to open CGI executable at '" + highlight(path) + "': '" + highlight(std::string(strerror(errno))) + "'");
+        throw CGIException("Checks failed when trying to open CGI executable at '" + highlight(this->_exec) + "': '" + highlight(std::string(strerror(errno))) + "'");
 
     file.close();
 
@@ -60,6 +59,8 @@ void CGI::update(const std::vector<Pair> &pairs)
         this->validate("allowed_methods", pairs, tmp, false);
         if (!tmp.empty())
         {
+            this->_accepted_http_methods.clear();
+            
             std::vector<std::string> methods = JSON::getValuesFromArray(tmp);
             if (!methods.size())
                 throw CGIException("Expected at least one HTTP method in '" + highlight("allowed_methods") + "'");
@@ -87,6 +88,16 @@ void CGI::update(const std::vector<Pair> &pairs)
     }
 }
 
+const std::string &CGI::getType(void) const
+{
+    return (this->_type);
+}
+
+const std::string &CGI::getExec(void) const
+{
+    return (this->_exec);
+}
+
 void CGI::validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory)
 {
     bool exist = Pair::exist(key, pairs);
@@ -110,4 +121,20 @@ CGI::CGIException::CGIException(const std::string &message) : _message(std::stri
 const char *CGI::CGIException::what() const throw()
 {
     return (_message.c_str());
+}
+
+std::ostream &operator<<(std::ostream &os, const CGI &c)
+{
+    os << "      [\"" << highlight(c.getType(), false) << "\"]" << std::endl;
+    os << "      Root folder: " << highlight(c.getRoot(), false) << std::endl;
+    os << "      Executable: " << highlight(c.getExec(), false) << std::endl;
+
+    os << "      Accepted HTTP methods: ";
+
+    const std::vector<HttpMethod> methods = c.getHTTPMethods();
+    for (std::vector<HttpMethod>::const_iterator it = methods.begin(); it != methods.end(); it++)
+        std::cout << (it == methods.begin() ? "" : ", ") << highlight(((HttpMethod)*it).getKey(), false);
+    os << std::endl;
+
+    return (os);
 }
