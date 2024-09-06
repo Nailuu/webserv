@@ -2,6 +2,7 @@
 
 Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex, bool alias)
 {
+    this->_cgi = false;
     this->_max_body_size = maxBodySize;
     this->_autoindex = autoindex;
     this->_alias = alias;
@@ -13,7 +14,6 @@ Route::Route(int maxBodySize, const std::string &route, const std::string &root,
 
 void Route::update(const std::vector<Pair> &pairs)
 {
-    // VectorDebugger<Pair>::print(pairs);
     std::string tmp;
 
     // ROUTE
@@ -83,6 +83,32 @@ void Route::update(const std::vector<Pair> &pairs)
         file.close();
     }
 
+    // CGI
+    this->validate("cgi-ext", pairs, this->_cgi_ext, false);
+    if (!this->_cgi_ext.empty())
+    {
+        this->_cgi = true;
+
+        if (!startsWith(this->_cgi_ext, "*."))
+            throw RouteException("CGI extension in '" + highlight("cgi-ext") + "' is invalid, it should start with '" + highlight("*.") + "': '" + highlight(this->_cgi_ext) + "'");
+
+        if (this->_cgi_ext.size() <= 2)
+            throw RouteException("Expected file extension in '" + highlight("cgi-ext") + "': " + highlight("'" + this->_cgi_ext + "'"));
+
+        // remove '*'
+        this->_cgi_ext = this->_cgi_ext.substr(1);
+
+        this->validate("cgi-exec", pairs, this->_cgi_exec);
+
+        std::ifstream file;
+        file.open(this->_cgi_exec.c_str());
+
+        if (file.fail())
+            throw RouteException("Can't open CGI executable file at '" + highlight(this->_cgi_exec) + "': '" + highlight(std::string(strerror(errno))) + "'");
+
+        file.close();
+    }
+
     // DIRECTORY LISTING "autoindex"
     this->validate("autoindex", pairs, tmp, false);
     if (!tmp.empty())
@@ -140,6 +166,21 @@ const std::string &Route::getRedirection(void) const
     return (this->_redirection);
 }
 
+const std::string &Route::getExtension(void) const
+{
+    return (this->_cgi_ext);
+}
+
+const std::string &Route::getExecutable(void) const
+{
+    return (this->_cgi_exec);
+}
+
+bool Route::isCGI(void) const
+{
+    return (this->_cgi);
+}
+
 void Route::stringToInt(const std::string &str, int &result, const std::string &context)
 {
     std::stringstream ss(str);
@@ -182,9 +223,20 @@ std::ostream &operator<<(std::ostream &os, const Route &r)
     else
     {
         os << "      Root folder: " << highlight(r.getRoot(), false) << std::endl;
-        os << "      Auto index: " << highlight(r.autoIndex() ? "true" : "false", false) << std::endl;
-        os << "      Alias: " << highlight(r.isAlias() ? "true" : "false", false) << std::endl;
-        os << "      Index file: " << highlight(r.getIndex(), false) << std::endl;
+
+        if (r.autoIndex())
+            os << "      Auto index: " << highlight("true", false) << std::endl;
+
+        if (r.isAlias())
+            os << "      Alias: " << highlight("true", false) << std::endl;
+
+        if (r.isCGI())
+        {
+            os << "      CGI extension: " << highlight(r.getExtension(), false) << std::endl;
+            os << "      CGI executable: " << highlight(r.getExecutable(), false) << std::endl;
+        }
+        else
+            os << "      Index file: " << highlight(r.getIndex(), false) << std::endl;
     }
 
     std::ostringstream tmp;

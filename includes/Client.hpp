@@ -6,7 +6,7 @@
 #include "ServerConfig.hpp"
 #include "Request.hpp"
 #include "StreamReader.hpp"
-#include "CGIENV.hpp"
+#include "CGIHandler.hpp"
 
 #define MAX_READ 1024
 
@@ -26,7 +26,6 @@ class Client
         void onGetRequest(bool autoIndex);
         void onDeleteRequest(void);
         void onPostRequest(void);
-        void onCGIRequest(CGIENV &envs);
 
     public:
         Client();

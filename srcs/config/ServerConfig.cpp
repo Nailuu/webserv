@@ -125,22 +125,6 @@ void ServerConfig::build(const std::vector<Pair> &pairs)
             }
         }
 
-        // CGI
-        this->validate("cgi", pairs, tmp);
-
-        std::vector<std::string> cgis = JSON::getObjectsFromArray(tmp);
-        for (std::vector<std::string>::const_iterator it = cgis.begin(); it != cgis.end(); it++)
-        {
-            // Initialize CGI with default settings
-            CGI c(this->_root, this->_accepted_http_methods);
-
-            // Overwrite default settings
-            std::vector<Pair> p = JSON::getKeysAndValuesFromObject(*it);
-            c.update(p);
-
-            this->_cgi.push_back(c);
-        }
-
         // ERRORS Default Pages
         this->validate("errors", pairs, tmp, false);
         if (!tmp.empty())
@@ -214,11 +198,6 @@ const std::vector<Route> &ServerConfig::getRoutes(void) const
     return (this->_routes);
 }
 
-const std::vector<CGI> &ServerConfig::getCGIs(void) const
-{
-    return (this->_cgi);
-}
-
 const Route *ServerConfig::getRoute(const std::string &path, bool duplicate) const
 {
     if (_routes.empty())
@@ -252,30 +231,6 @@ const Route *ServerConfig::getRoute(const std::string &path, bool duplicate) con
     }
 
     return (lastRoute);
-}
-
-const CGI *ServerConfig::getCGI(const std::string &path) const
-{
-    if (_cgi.empty())
-    {
-        throw ServerConfigException("No CGI was registered");
-    }
-
-    std::size_t pos = path.find_last_of('.');
-    if (pos == std::string::npos)
-        return (NULL);
-
-    std::string extension = path.substr(pos);
-    if (extension.size() == 1)
-        return (NULL);
-
-    for (std::vector<CGI>::const_iterator it = _cgi.begin(); it != _cgi.end(); it++)
-    {
-        if (it->getType() == extension)
-            return (&(*it));
-    }
-
-    return (NULL);
 }
 
 void ServerConfig::validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory)
@@ -343,12 +298,6 @@ std::ostream &operator<<(std::ostream &os, const ServerConfig &sc)
     os << YELLOW << "\n   Routes: " << WHITE << std::endl;
     const std::vector<Route> routes = sc.getRoutes();
     for (std::vector<Route>::const_iterator it = routes.begin(); it != routes.end(); it++)
-        std::cout << "\n"
-                  << (*it) << std::endl;
-
-    os << YELLOW << "\n   CGI: " << WHITE << std::endl;
-    const std::vector<CGI> cgis = sc.getCGIs();
-    for (std::vector<CGI>::const_iterator it = cgis.begin(); it != cgis.end(); it++)
         std::cout << "\n"
                   << (*it) << std::endl;
 

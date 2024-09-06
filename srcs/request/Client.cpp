@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <sys/wait.h>
 
 Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(std::string::npos), _reader(_fd), _write("") {}
 
@@ -86,77 +85,6 @@ void Client::onPostRequest()
     _write = res.build(_request);
 }
 
-void Client::onCGIRequest(CGIENV &envs)
-{
-    // envs.print();
-
-    int pipeIn[2];  // Input
-    int pipeOut[2]; // Output
-
-    if (pipe(pipeIn) == -1 || pipe(pipeOut) == -1)
-        throw ClientException("Cannot create pipes");
-
-    pid_t pid = fork();
-
-    if (pid == -1)
-        throw ClientException("Cannot create fork");
-
-    else if (pid == 0)
-    {
-        // Redirect STDIN and STDOUT
-        dup2(pipeIn[0], STDIN_FILENO);
-        dup2(pipeOut[1], STDOUT_FILENO);
-
-        close(pipeIn[1]);
-        close(pipeOut[0]);
-
-        char **envp = envs.getEnvs();
-
-        char **args = NULL;
-
-        const std::string &path = envs.getByKey("SCRIPT_FILENAME");
-        execve(path.c_str(), args, envp);
-
-        // If execve failed the execution will continue
-        std::cout << strerror(errno);
-        exit(1);
-    }
-    else
-    {
-        close(pipeIn[0]);
-        close(pipeOut[1]);
-        close(pipeIn[1]);
-
-        // Read CGI output
-        char buffer[1024];
-        ssize_t bytesRead;
-        while ((bytesRead = read(pipeOut[0], buffer, sizeof(buffer) - 1)) > 0)
-            buffer[bytesRead] = '\0';
-
-        close(pipeOut[0]);
-
-        std::ostringstream output;
-        output << buffer;
-
-        // Wait for the child process to finish
-        int status;
-        waitpid(pid, &status, 0);
-
-        if (WEXITSTATUS(status) != 0)
-            throw ClientException("CGI execution with execve() failed: '" + highlight(output.str()) + "'");
-
-        _receiving = false;
-
-        Response res("HTTP/1.1", HttpStatusCode::OK);
-        res.setContent(output.str(), MimeType::TEXT_PLAIN);
-        res.addField("Connection", "close");
-
-        _write = res.build(_request);
-
-        std::cout << _write << std::endl;
-    }
-}
-
 bool Client::HandleRequest(const ServerConfig &config)
 {
     if (_request.getHttpVersion() != "HTTP/1.1")
@@ -181,10 +109,7 @@ bool Client::HandleRequest(const ServerConfig &config)
         return (true);
     }
 
-    // Check if path is CGI
-    const CGI *cgi = config.getCGI(_request.getPath());
-
-    if ((cgi == NULL && !route->isHTTPMethodAuthorized(_request.getMethod())) || (cgi != NULL && !cgi->isHTTPMethodAuthorized(_request.getMethod())))
+    if (!route->isHTTPMethodAuthorized(_request.getMethod()))
     {
         // std::cout << "Method not allowed!" << std::endl;
         Response res = Response::getErrorResponse(HttpStatusCode::METHOD_NOT_ALLOWED);
@@ -193,8 +118,21 @@ bool Client::HandleRequest(const ServerConfig &config)
         return (true);
     }
 
+    bool isCGI = false;
+    if (route->isCGI())
+    {
+        std::string tmp = _request.getPath();
+
+        std::size_t pos = tmp.find_last_of('.');
+        if (pos != std::string::npos)
+        {
+            if (tmp.substr(pos) == route->getExtension() && pos != 0 && tmp.at(pos - 1) != '/')
+                isCGI = true;
+        }
+    }
+
     // If redirection is not empty, there is a redirection
-    if (!cgi && !route->getRedirection().empty())
+    if (!isCGI && !route->getRedirection().empty())
     {
         // Create redirection response
         Response res("HTTP/1.1", HttpStatusCode::MOVED_PERMANENTLY);
@@ -268,21 +206,62 @@ bool Client::HandleRequest(const ServerConfig &config)
 
     _path = path.str();
 
-    if (cgi)
+    if (isCGI)
     {
-        CGIENV envs;
-
-        // Build CGI environment variables
         try
         {
-            envs = CGIENV(config, this->_request, cgi);
+            CGIHandler handler;
+
+            // Init CGI environment variables
+            handler.init(config, this->_request, route, _path);
+
+            // Execute CGI script
+            bool timedout = false;
+            const std::string output = handler.execute(timedout);
+
+            _receiving = false;
+
+            // If CGI script was still runing after TIMEOUT seconds
+            if (timedout)
+            {
+                Response res("HTTP/1.1", HttpStatusCode::GATEWAY_TIMEOUT);
+                res.setContent("<h1 style=\"text-align: center\">CGI SCRIPT TIMEOUT</h1>", MimeType::TEXT_HTML);
+                _write = res.build(_request);
+
+                return (true);
+            }
+
+            Response res("HTTP/1.1", HttpStatusCode::OK);
+            res.setContent(output, MimeType::TEXT_HTML);
+            res.addField("Connection", "close");
+
+            _write = res.build(_request);
         }
         catch (const std::exception &e)
         {
-            throw;
-        }
+            std::string error = e.what();
 
-        onCGIRequest(envs);
+            if (!startsWith(error, "---\n"))
+                std::cerr << RED << "CGI Runtime Error: CGIHandler Error " << YELLOW << " - " << e.what() << WHITE << std::endl;
+
+            _receiving = false;
+
+            Response res = Response::getErrorResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
+
+            if (startsWith(error, "---\n"))
+            {
+                std::ostringstream content;
+                content << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>CGI Script Error</title><style>body{font-family:Arial,sans-serif;background-color:#f8f8f8;color:#333;text-align:center;margin:50px;}.error-box{background-color:#eaeaea;color:#d95050;text-align:start;padding:20px;border-radius:5px;display:inline-block;white-space:pre-wrap;}</style></head><body><h1>CGI Script Error</h1><div class=\"error-box\">";
+                content << error.substr(5);
+                content << "</div></body></html>";
+
+                res.setContent(content.str(), MimeType::TEXT_HTML);
+            }
+
+            _write = res.build(_request);
+
+            return (true);
+        }
     }
     else if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
     {

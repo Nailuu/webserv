@@ -12,7 +12,6 @@
 #include "Route.hpp"
 #include "Pair.hpp"
 #include "JSON.hpp"
-#include "CGI.hpp"
 #include "AConfiguration.hpp"
 
 class ServerConfig : public AConfiguration
@@ -24,16 +23,13 @@ public:
     const std::string &getHost(void) const;
     const std::string &getName(void) const;
     const std::vector<Route> &getRoutes(void) const;
-    const std::vector<CGI> &getCGIs(void) const;
     const Route *getRoute(const std::string &path, bool duplicate = false) const;
-    const CGI *getCGI(const std::string &path) const;
 
 private:
     int _port;
     std::string _host;
     std::string _name;
     std::vector<Route> _routes;
-    std::vector<CGI> _cgi;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 

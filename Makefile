@@ -8,9 +8,9 @@ SRCSDIR = srcs
 OBJSDIR = $(SRCSDIR)/objs
 
 SRCS = main ServerManager Server global StreamReader \
-	enum/MimeType enum/HttpMethod enum/HttpStatusCode enum/AcceptedCGI \
-	request/HTTPPayload request/Request request/Response request/AutoIndexGenerator request/CGIENV request/Client \
-	config/ConfigParser config/Route config/ServerConfig config/JSON config/Pair config/CGI config/AConfiguration
+	enum/MimeType enum/HttpMethod enum/HttpStatusCode \
+	request/HTTPPayload request/Request request/Response request/AutoIndexGenerator request/CGIHandler request/Client \
+	config/AConfiguration config/ConfigParser config/Route config/ServerConfig config/JSON config/Pair
 
 OBJS = $(addprefix $(OBJSDIR)/, $(SRCS:=.o))
 

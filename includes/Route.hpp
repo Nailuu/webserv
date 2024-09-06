@@ -21,10 +21,16 @@ public:
     void update(const std::vector<Pair>& pairs);
     const std::string &getRoute(void) const;
     const std::string &getRedirection(void) const;
+    const std::string &getExtension(void) const;
+    const std::string &getExecutable(void) const;
+    bool isCGI(void) const;
 
 private:
+    bool _cgi;
     std::string _route;
     std::string _redirection;
+    std::string _cgi_ext;
+    std::string _cgi_exec;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 
