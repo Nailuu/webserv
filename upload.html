@@ -1,0 +1,29 @@
+<input type="file" id="fileInput">
+<button id="uploadBtn">Upload File</button>
+
+<script>
+document.getElementById('uploadBtn').addEventListener('click', function() {
+	const fileInput = document.getElementById('fileInput');
+	const file = fileInput.files[0]; // Récupère le premier fichier sélectionné
+  
+	if (file) {
+	  const formData = new FormData();
+	  formData.append('fichier', file); // 'fichier' est le nom que le serveur attend pour le fichier
+  
+	  fetch('http://127.0.0.1:8080/cgi-bin/', {
+		method: 'POST',
+		body: formData,
+	  })
+	  .then(response => response.text())
+	  .then(result => {
+		console.log('Fichier envoyé avec succès :', result);
+	  })
+	  .catch(error => {
+		console.error('Erreur lors de l\'envoi du fichier :', error);
+	  });
+	} else {
+	  console.error("Aucun fichier sélectionné.");
+	}
+  });
+</script>
+  

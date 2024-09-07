@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <fstream>
 
 Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(std::string::npos), _reader(_fd), _write("") {}
 
@@ -68,20 +69,167 @@ void Client::onPostRequest()
 {
     _receiving = false;
 
+    // Verify path points a dir
+    struct stat statBuf;
+
+    if (stat(_path.c_str(), &statBuf) != 0 || !S_ISDIR(statBuf.st_mode))
+    {
+        Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
+        _write = res.build(_request);
+        return ;
+    }
+    
     std::string body = _reader.getBody();
 
     if (_contentLength != std::string::npos)
     {
-        body = body.substr(_contentLength);
+        body = body.substr(0, _contentLength);
     }
     else
     {
         body = body.substr(0, body.length() - 4); // Remove "\r\n\r\n"
     }
 
-    Response res = Response("HTTP/1.1", HttpStatusCode::OK);
-    res.addField("Connection", "close");
-    res.setContent("", MimeType::TEXT_PLAIN);
+    std::map<std::string, std::string>::const_iterator it = _request.getFields().find("Content-Type");
+    std::string boundary;
+
+    // Find Boundary
+    if (it != _request.getFields().end())
+    {
+        std::string value = (*it).second;
+
+        std::string multipartBeginValue = "multipart/form-data; boundary=";
+        
+        if (value.find(multipartBeginValue) == 0)
+        {
+            boundary = value.substr(multipartBeginValue.length());
+            
+            if (boundary.at(boundary.length() - 1) == '\r') {
+                boundary = boundary.substr(0, boundary.length() - 1);
+            }
+        }
+    }
+
+    std::string filename;
+    bool success = false;
+
+    // Get files infos
+    if (!boundary.empty())
+    {
+        // Check body starts with --boundary
+        if (body.find("--" + boundary) != 0) {
+            goto end;
+        }
+
+        size_t endLine = body.find("\n");
+
+        if (endLine == std::string::npos) {
+            goto end;
+        }
+
+        body = body.substr(endLine + 1);
+
+        // Get Content-Disposition Header (mandatory)
+
+        std::string header = "Content-Disposition: form-data";
+
+        size_t headerIndex = body.find(header);
+
+        if (headerIndex == std::string::npos) {
+            goto end;
+        }
+
+        body = body.substr(headerIndex + header.length());
+
+        // Verify name exists
+        size_t nameIndex = body.find("name=\"");
+
+        if (nameIndex == std::string::npos
+            || body.substr(nameIndex + 6).find("\"") == std::string::npos) {
+            goto end;
+        }
+
+        // Verify filename exists
+        size_t filenameIndex = body.find("filename=\"");
+
+        if (filenameIndex == std::string::npos) {
+            goto end;
+        }
+
+        body = body.substr(filenameIndex + 10);
+
+        // Get fileName
+        size_t filenameEndIndex = body.find("\"");
+
+        if (filenameEndIndex == std::string::npos) {
+            goto end;
+        }
+
+        filename = body.substr(0, filenameEndIndex);
+
+        body = body.substr(filenameEndIndex + 2);
+
+        // Pass every other headers
+        std::string endData = "\r\n\r\n";
+
+        size_t dataBeginIndex = body.find(endData);
+
+        if (dataBeginIndex == std::string::npos) {
+            endData = "\n\n";
+            dataBeginIndex = body.find(endData);
+            if (dataBeginIndex == std::string::npos) {
+                goto end;
+            }
+        }
+
+        body = body.substr(dataBeginIndex + endData.length());
+
+        // Get end of content
+        size_t endContentIndex = body.find("\n--" + boundary + "--");
+
+        if (endContentIndex == std::string::npos) {
+            goto end;
+        }
+
+        body = body.substr(0, endContentIndex);
+        success = true;
+    }
+
+    end:
+
+    // Body is equals to file Content
+    if (success)
+    {
+        std::ostringstream filePath;
+
+        filePath << _path;
+
+        if (_path.at(_path.length() - 1) != '/') {
+            filePath << '/';
+        }
+
+        filePath << filename;
+
+        std::ofstream file(filePath.str().c_str(), std::ios::out | std::ios::app);
+        
+        if (!file.is_open()) {
+            Response res = Response::getErrorResponse(HttpStatusCode::FORBIDDEN);
+            _write = res.build(_request);
+            return;
+        }
+
+        file << body;
+
+        file.close();
+
+        Response res = Response("HTTP/1.1", HttpStatusCode::OK);
+        res.addField("Connection", "close");
+        res.setContent("", MimeType::TEXT_HTML);
+        _write = res.build(_request);
+        return;
+    }
+
+    Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
     _write = res.build(_request);
 }
 
@@ -281,7 +429,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     std::string header = _reader.getHeader();
 
-    // std::cout << header << std::endl;
+    std::cout << header << std::endl;
 
     try
     {
@@ -404,7 +552,7 @@ void Client::onReceive(const ServerConfig &config)
     if (_contentLength != std::string::npos)
     {
         if (_reader.getBodySize() >= _contentLength)
-            HandleRequest(config);
+            onPostRequest();
     }
     else
     {

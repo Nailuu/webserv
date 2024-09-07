@@ -9,10 +9,9 @@ const std::vector<ServerConfig> &ConfigParser::getConfigs() const
 
 void ConfigParser::parse(const std::string &path)
 {
-    std::ifstream file;
-    file.open(path.c_str());
+    std::ifstream file(path.c_str());
 
-    if (file.fail())
+    if (!file.is_open())
         throw ParsingException("Can't open configuration file: '" + highlight(std::string(strerror(errno))) + "'");
 
     // Read file content
