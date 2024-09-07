@@ -4,9 +4,14 @@
 #include <cstdlib>
 #include <ostream>
 #include <map>
-#include <sys/wait.h>
 
-CGIHandler::CGIHandler() : _envs(), _envp(NULL), _args(NULL) {}
+CGIHandler::CGIHandler() : _envs()
+{
+    this->_active = false;
+    this->_timedout = false;
+    this->_envp = 0;
+    this->_args = 0;
+}
 
 void CGIHandler::init(const ServerConfig &config, const Request &req, const Route *route, const std::string &path)
 {
@@ -40,98 +45,227 @@ void CGIHandler::init(const ServerConfig &config, const Request &req, const Rout
     this->_envs["GATEWAY_INTERFACE"] = "CGI/1.1";
 }
 
-const std::string CGIHandler::execute(bool &timedout)
+void CGIHandler::execute()
 {
     // this->print();
 
-    int pipeIn[2];  // Input
-    int pipeOut[2]; // Output
+    this->_active = true;
 
-    if (pipe(pipeIn) == -1 || pipe(pipeOut) == -1)
+    int output_pipe[2];
+    int error_pipe[2];
+    int timeout_pipe[2];
+
+    if (pipe(output_pipe) == -1 || pipe(error_pipe) == -1 || pipe(timeout_pipe) == -1)
         throw CGIHandlerException("Cannot create pipes");
 
-    pid_t pid = fork();
+    this->_pid = fork();
 
-    if (pid == -1)
+    if (this->_pid == -1)
         throw CGIHandlerException("Cannot create fork");
 
-    else if (pid == 0)
+    try
     {
-        // Redirect STDIN and STDOUT
-        dup2(pipeIn[0], STDIN_FILENO);
-        dup2(pipeOut[1], STDOUT_FILENO);
-        dup2(pipeOut[1], STDERR_FILENO);
-
-        close(pipeIn[1]);
-        close(pipeOut[0]);
-
-        this->init_envp();
-        this->init_args();
-
-        execve(this->_args[0], this->_args, this->_envp);
-
-        // If execve failed the execution will continue
-        std::cout << strerror(errno);
-        exit(1);
-    }
-    else
-    {
-        close(pipeIn[0]);
-        close(pipeOut[1]);
-        close(pipeIn[1]);
-
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(pipeOut[0], &readfds);
-
-        char buffer[4096] = {0};
-        std::ostringstream output;
-
-        struct timeval timeout;
-        timeout.tv_sec = TIMEOUT;
-        timeout.tv_usec = 0;
-
-        // Wait for script output with a timeout
-        int activity = select(pipeOut[0] + 1, &readfds, NULL, NULL, &timeout);
-        if (activity < 0)
-            throw CGIHandlerException("Error during select: " + std::string(strerror(errno)));
-        else if (activity == 0)
-            timedout = true;
-
-        if (!timedout && FD_ISSET(pipeOut[0], &readfds))
+        // 1st fork
+        if (this->_pid == 0)
         {
-            ssize_t bytesRead = read(pipeOut[0], buffer, sizeof(buffer) - 1);
-            if (bytesRead > 0)
+            int fork_pipe[2];
+
+            if (pipe(fork_pipe) == -1)
+                throw CGIHandlerException("Cannot create pipes");
+
+            pid_t pid2 = fork();
+
+            if (pid2 == -1)
+                throw CGIHandlerException("Cannot create sub-fork");
+
+            // 2nd fork
+            else if (pid2 == 0)
             {
-                buffer[bytesRead] = '\0';
-                output << buffer;
+                // Redirect STDOUT and STDERR
+                dup2(fork_pipe[1], STDOUT_FILENO);
+                dup2(fork_pipe[1], STDERR_FILENO);
+
+                close(fork_pipe[0]);
+
+                this->init_envp();
+                this->init_args();
+
+                execve(this->_args[0], this->_args, this->_envp);
+
+                // Free memory of envp and args if execve has failed
+                this->clean();
+
+                // If execve failed the execution will continue
+                std::cout << strerror(errno);
+                exit(1);
             }
-            else if (bytesRead < 0)
-                throw CGIHandlerException("Error reading from pipe: '" + highlight(std::string(strerror(errno))) + "'");
+
+            // 1st fork
+            else
+            {
+                fd_set readfds;
+                FD_ZERO(&readfds);
+                FD_SET(fork_pipe[0], &readfds);
+
+                char buffer[16384] = {0};
+                std::ostringstream tmp;
+
+                struct timeval timeout;
+                timeout.tv_sec = TIMEOUT;
+                timeout.tv_usec = 0;
+
+                bool timedout = false;
+
+                // Wait for script output with a timeout
+                int activity = select(fork_pipe[0] + 1, &readfds, NULL, NULL, &timeout);
+                if (activity == 0)
+                    timedout = true;
+
+                if (!timedout && FD_ISSET(fork_pipe[0], &readfds))
+                {
+                    // While loop for reading blocking for some strange reasons????
+                    read(fork_pipe[0], buffer, sizeof(buffer));
+                    tmp << buffer;
+                }
+
+                if (timedout)
+                    kill(pid2, SIGKILL);
+
+                // Wait for the child process to finish
+                int status;
+                waitpid(pid2, &status, 0);
+
+                std::string output = tmp.str();
+
+                // Timedout
+                if (timedout)
+                    write(timeout_pipe[1], "true", 5);
+
+                // Error
+                else if (!WIFSIGNALED(status) && WEXITSTATUS(status) != 0)
+                    write(error_pipe[1], output.c_str(), output.size() + 1);
+
+                // No Error
+                else
+                    write(output_pipe[1], output.c_str(), output.size() + 1);
+
+                close(fork_pipe[1]);
+                close(timeout_pipe[1]);
+                close(error_pipe[1]);
+                close(output_pipe[1]);
+                close(fork_pipe[0]);
+                close(timeout_pipe[0]);
+                close(error_pipe[0]);
+                close(output_pipe[0]);
+
+                exit(0);
+            }
         }
+        else
+        {
+            close(output_pipe[1]);
+            close(error_pipe[1]);
+            close(timeout_pipe[1]);
 
-        if (timedout)
-            kill(pid, SIGKILL);
-
-        close(pipeOut[0]);
-
-        // Wait for the child process to finish
-        int status;
-        waitpid(pid, &status, 0);
-
-        // Free memory of envp and args
-        this->clean();
-
-        if (!WIFSIGNALED(status) && WEXITSTATUS(status) != 0)
-            throw CGIHandlerException("---\n" + output.str());
-
-        return (output.str());
+            this->_output_pipe = output_pipe[0];
+            this->_error_pipe = error_pipe[0];
+            this->_timeout_pipe = timeout_pipe[0];
+        }
+    }
+    catch (const std::exception &e)
+    {
+        throw;
     }
 }
 
 const std::string &CGIHandler::getByKey(const std::string &key) const
 {
     return (this->_envs.at(key));
+}
+
+bool CGIHandler::isActive(void) const
+{
+    return (this->_active);
+}
+
+const pid_t &CGIHandler::getPid(void) const
+{
+    return (this->_pid);
+}
+
+bool CGIHandler::hasErrors(void) const
+{
+    return (!this->_errors.empty());
+}
+
+bool CGIHandler::hasTimedOut(void) const
+{
+    return (this->_timedout);
+}
+
+const std::string &CGIHandler::getOutput(void) const
+{
+    return (this->_output);
+}
+
+const std::string &CGIHandler::getErrors(void) const
+{
+    return (this->_errors);
+}
+
+void CGIHandler::readPipes(void)
+{
+    this->_active = false;
+
+    char buffer[4096] = {0};
+
+    std::ostringstream timeout;
+    std::ostringstream errors;
+    std::ostringstream output;
+
+    ssize_t bytesRead = 0;
+
+    while ((bytesRead = read(this->_timeout_pipe, buffer, sizeof(buffer))) > 0)
+        timeout << buffer;
+
+    if (!timeout.str().empty())
+    {
+        this->_timedout = true;
+
+        close(this->_output_pipe);
+        close(this->_error_pipe);
+        close(this->_timeout_pipe);
+
+        return;
+    }
+
+    while ((bytesRead = read(this->_error_pipe, buffer, sizeof(buffer))) > 0)
+        errors << buffer;
+
+    if (!errors.str().empty())
+    {
+        this->_errors = errors.str();
+
+        close(this->_output_pipe);
+        close(this->_error_pipe);
+        close(this->_timeout_pipe);
+
+        return;
+    }
+
+    while ((bytesRead = read(this->_output_pipe, buffer, sizeof(buffer))) > 0)
+        output << buffer;
+
+    if (!output.str().empty())
+    {
+        this->_output = output.str();
+
+        close(this->_output_pipe);
+        close(this->_error_pipe);
+        close(this->_timeout_pipe);
+
+        return;
+    }
 }
 
 void CGIHandler::init_envp(void)
@@ -150,6 +284,7 @@ void CGIHandler::init_envp(void)
         index++;
     }
 
+    result[index] = NULL;
     this->_envp = result;
 }
 

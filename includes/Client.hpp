@@ -21,6 +21,7 @@ class Client
         StreamReader _reader;
         Request _request;
         std::string _write;
+        CGIHandler _handler;
         bool HandleRequest(const ServerConfig &config);
         bool onHeaderReceived(const ServerConfig &config);
         void onGetRequest(bool autoIndex);
@@ -37,6 +38,7 @@ class Client
         bool onSend(void);
         bool isReceiving(void) const;
         void onStop(void);
+        CGIHandler& getCGIHandler(void);
 
         // Exception class
         class ClientException : public std::exception

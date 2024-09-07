@@ -76,6 +76,14 @@ void Server::stopClients(void) const
     for (; it != _clients.end(); it++)
     {
         close((*it).first);
+
+        // Clean fork, pipes and heap memory of CGI
+        if ((*it).second->getCGIHandler().isActive())
+        {
+            (*it).second->getCGIHandler().clean();
+            kill((*it).second->getCGIHandler().getPid(), SIGKILL);
+        }
+
         delete ((*it).second);
     }
 }

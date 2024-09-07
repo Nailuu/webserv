@@ -76,9 +76,9 @@ void Client::onPostRequest()
     {
         Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
         _write = res.build(_request);
-        return ;
+        return;
     }
-    
+
     std::string body = _reader.getBody();
 
     if (_contentLength != std::string::npos)
@@ -99,12 +99,13 @@ void Client::onPostRequest()
         std::string value = (*it).second;
 
         std::string multipartBeginValue = "multipart/form-data; boundary=";
-        
+
         if (value.find(multipartBeginValue) == 0)
         {
             boundary = value.substr(multipartBeginValue.length());
-            
-            if (boundary.at(boundary.length() - 1) == '\r') {
+
+            if (boundary.at(boundary.length() - 1) == '\r')
+            {
                 boundary = boundary.substr(0, boundary.length() - 1);
             }
         }
@@ -117,13 +118,15 @@ void Client::onPostRequest()
     if (!boundary.empty())
     {
         // Check body starts with --boundary
-        if (body.find("--" + boundary) != 0) {
+        if (body.find("--" + boundary) != 0)
+        {
             goto end;
         }
 
         size_t endLine = body.find("\n");
 
-        if (endLine == std::string::npos) {
+        if (endLine == std::string::npos)
+        {
             goto end;
         }
 
@@ -135,7 +138,8 @@ void Client::onPostRequest()
 
         size_t headerIndex = body.find(header);
 
-        if (headerIndex == std::string::npos) {
+        if (headerIndex == std::string::npos)
+        {
             goto end;
         }
 
@@ -144,15 +148,16 @@ void Client::onPostRequest()
         // Verify name exists
         size_t nameIndex = body.find("name=\"");
 
-        if (nameIndex == std::string::npos
-            || body.substr(nameIndex + 6).find("\"") == std::string::npos) {
+        if (nameIndex == std::string::npos || body.substr(nameIndex + 6).find("\"") == std::string::npos)
+        {
             goto end;
         }
 
         // Verify filename exists
         size_t filenameIndex = body.find("filename=\"");
 
-        if (filenameIndex == std::string::npos) {
+        if (filenameIndex == std::string::npos)
+        {
             goto end;
         }
 
@@ -161,7 +166,8 @@ void Client::onPostRequest()
         // Get fileName
         size_t filenameEndIndex = body.find("\"");
 
-        if (filenameEndIndex == std::string::npos) {
+        if (filenameEndIndex == std::string::npos)
+        {
             goto end;
         }
 
@@ -174,10 +180,12 @@ void Client::onPostRequest()
 
         size_t dataBeginIndex = body.find(endData);
 
-        if (dataBeginIndex == std::string::npos) {
+        if (dataBeginIndex == std::string::npos)
+        {
             endData = "\n\n";
             dataBeginIndex = body.find(endData);
-            if (dataBeginIndex == std::string::npos) {
+            if (dataBeginIndex == std::string::npos)
+            {
                 goto end;
             }
         }
@@ -187,7 +195,8 @@ void Client::onPostRequest()
         // Get end of content
         size_t endContentIndex = body.find("\n--" + boundary + "--");
 
-        if (endContentIndex == std::string::npos) {
+        if (endContentIndex == std::string::npos)
+        {
             goto end;
         }
 
@@ -195,7 +204,7 @@ void Client::onPostRequest()
         success = true;
     }
 
-    end:
+end:
 
     // Body is equals to file Content
     if (success)
@@ -204,15 +213,17 @@ void Client::onPostRequest()
 
         filePath << _path;
 
-        if (_path.at(_path.length() - 1) != '/') {
+        if (_path.at(_path.length() - 1) != '/')
+        {
             filePath << '/';
         }
 
         filePath << filename;
 
         std::ofstream file(filePath.str().c_str(), std::ios::out | std::ios::app);
-        
-        if (!file.is_open()) {
+
+        if (!file.is_open())
+        {
             Response res = Response::getErrorResponse(HttpStatusCode::FORBIDDEN);
             _write = res.build(_request);
             return;
@@ -358,58 +369,25 @@ bool Client::HandleRequest(const ServerConfig &config)
     {
         try
         {
-            CGIHandler handler;
-
-            // Init CGI environment variables
-            handler.init(config, this->_request, route, _path);
-
-            // Execute CGI script
-            bool timedout = false;
-            const std::string output = handler.execute(timedout);
-
-            _receiving = false;
-
-            // If CGI script was still runing after TIMEOUT seconds
-            if (timedout)
+            if (!this->_handler.isActive())
             {
-                Response res("HTTP/1.1", HttpStatusCode::GATEWAY_TIMEOUT);
-                res.setContent("<h1 style=\"text-align: center\">CGI SCRIPT TIMEOUT</h1>", MimeType::TEXT_HTML);
-                _write = res.build(_request);
+                // Init CGI environment variables
+                this->_handler.init(config, this->_request, route, _path);
 
-                return (true);
+                // Execute CGI script
+                this->_handler.execute();
             }
-
-            Response res("HTTP/1.1", HttpStatusCode::OK);
-            res.setContent(output, MimeType::TEXT_HTML);
-            res.addField("Connection", "close");
-
-            _write = res.build(_request);
         }
         catch (const std::exception &e)
         {
-            std::string error = e.what();
-
-            if (!startsWith(error, "---\n"))
-                std::cerr << RED << "CGI Runtime Error: CGIHandler Error " << YELLOW << " - " << e.what() << WHITE << std::endl;
-
-            _receiving = false;
+            std::cerr << RED << "CGI Runtime Error: CGIHandler Error " << YELLOW << " - " << e.what() << WHITE << std::endl;
 
             Response res = Response::getErrorResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
-
-            if (startsWith(error, "---\n"))
-            {
-                std::ostringstream content;
-                content << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>CGI Script Error</title><style>body{font-family:Arial,sans-serif;background-color:#f8f8f8;color:#333;text-align:center;margin:50px;}.error-box{background-color:#eaeaea;color:#d95050;text-align:start;padding:20px;border-radius:5px;display:inline-block;white-space:pre-wrap;}</style></head><body><h1>CGI Script Error</h1><div class=\"error-box\">";
-                content << error.substr(5);
-                content << "</div></body></html>";
-
-                res.setContent(content.str(), MimeType::TEXT_HTML);
-            }
-
             _write = res.build(_request);
-
-            return (true);
         }
+
+        _receiving = false;
+        return (true);
     }
     else if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
     {
@@ -429,7 +407,7 @@ bool Client::onHeaderReceived(const ServerConfig &config)
 
     std::string header = _reader.getHeader();
 
-    std::cout << header << std::endl;
+    // std::cout << header << std::endl;
 
     try
     {
@@ -569,6 +547,60 @@ void Client::onReceive(const ServerConfig &config)
 
 bool Client::onSend(void)
 {
+    if (this->_handler.isActive())
+    {
+
+        // Non blocking waitpid, flag -> WNOHANG
+        pid_t result = waitpid(this->_handler.getPid(), NULL, WNOHANG);
+
+        // Fork still running
+        if (result == 0)
+            return (true);
+
+        // Fork has stopped
+        else if (result > 0)
+        {
+            this->_handler.readPipes();
+
+            // If fork exited with code 1
+            if (this->_handler.hasErrors())
+            {
+                Response res = Response::getErrorResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
+
+                std::ostringstream content;
+                content << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>CGI Script Error</title><style>body{font-family:Arial,sans-serif;background-color:#f8f8f8;color:#333;text-align:center;margin:50px;}.error-box{background-color:#eaeaea;color:#d95050;text-align:start;padding:20px;border-radius:5px;display:inline-block;white-space:pre-wrap;}</style></head><body><h1>CGI Script Error</h1><div class=\"error-box\">";
+                content << this->_handler.getErrors();
+                content << "</div></body></html>";
+
+                res.setContent(content.str(), MimeType::TEXT_HTML);
+
+                this->_write = res.build(_request);
+            }
+            else
+            {
+                // Fork execution has timedout
+                if (this->_handler.hasTimedOut())
+                {
+                    Response res("HTTP/1.1", HttpStatusCode::GATEWAY_TIMEOUT);
+                    res.setContent("<h1 style=\"text-align: center\">CGI SCRIPT TIMEOUT</h1>", MimeType::TEXT_HTML);
+
+                    this->_write = res.build(_request);
+                }
+                else
+                {
+                    Response res("HTTP/1.1", HttpStatusCode::OK);
+                    res.setContent(this->_handler.getOutput(), MimeType::TEXT_HTML);
+                    res.addField("Connection", "close");
+
+                    this->_write = res.build(_request);
+                }
+            }
+        }
+
+        else
+            throw ClientException("Waitpid of CGI fork has failed!");
+    }
+
     if (this->_write.empty())
     {
         throw ClientException("Nothing to write");
@@ -604,6 +636,11 @@ void Client::onStop(void)
 {
     _receiving = false;
     close(_fd);
+}
+
+CGIHandler &Client::getCGIHandler(void)
+{
+    return (this->_handler);
 }
 
 Client::ClientException::ClientException(const std::string &message) : _message(std::string(RED) + "Client Error" + std::string(YELLOW) + " - " + message) {}
