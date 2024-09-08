@@ -107,6 +107,9 @@ void CGIHandler::execute()
                 FD_ZERO(&readfds);
                 FD_SET(fork_pipe[0], &readfds);
 
+                fd_set writefds;
+                FD_ZERO(&writefds);
+
                 char buffer[16384] = {0};
                 std::ostringstream tmp;
 
@@ -120,6 +123,24 @@ void CGIHandler::execute()
                 int activity = select(fork_pipe[0] + 1, &readfds, NULL, NULL, &timeout);
                 if (activity == 0)
                     timedout = true;
+                
+                // Assure all pipes are ready
+
+                FD_ZERO(&readfds);
+                FD_SET(timeout_pipe[0], &readfds);
+                FD_SET(error_pipe[0], &readfds);
+                FD_SET(output_pipe[0], &readfds);
+
+                FD_ZERO(&writefds);
+                FD_SET(timeout_pipe[1], &writefds);
+                FD_SET(error_pipe[1], &writefds);
+                FD_SET(output_pipe[1], &writefds);
+
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 0;
+
+                if (select(6, &readfds, &writefds, NULL, &timeout) != 6)
+                    throw CGIHandlerException("Pipes are not ready");
 
                 if (!timedout && FD_ISSET(fork_pipe[0], &readfds))
                 {
