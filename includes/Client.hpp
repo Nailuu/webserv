@@ -22,8 +22,8 @@ class Client
         Request _request;
         std::string _write;
         CGIHandler _handler;
-        bool HandleRequest(const ServerConfig &config);
-        bool onHeaderReceived(const ServerConfig &config);
+        bool HandleRequest(const ServerConfig &config, ServerManager *manager);
+        bool onHeaderReceived(const ServerConfig &config, ServerManager *manager);
         void onGetRequest(bool autoIndex);
         void onDeleteRequest(void);
         void onPostRequest(void);
@@ -34,7 +34,7 @@ class Client
         ~Client();
         Client(const Client &other);
         Client operator=(const Client &other);
-        void onReceive(const ServerConfig &config);
+        void onReceive(const ServerConfig &config, ServerManager *manager);
         bool onSend(void);
         bool isReceiving(void) const;
         void onStop(void);

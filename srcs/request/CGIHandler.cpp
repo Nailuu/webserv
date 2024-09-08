@@ -1,4 +1,4 @@
-#include "CGIHandler.hpp"
+#include "ServerManager.hpp"
 #include "global.hpp"
 
 #include <cstdlib>
@@ -45,7 +45,7 @@ void CGIHandler::init(const ServerConfig &config, const Request &req, const Rout
     this->_envs["GATEWAY_INTERFACE"] = "CGI/1.1";
 }
 
-void CGIHandler::execute()
+void CGIHandler::execute(ServerManager *manager)
 {
     // this->print();
 
@@ -97,6 +97,9 @@ void CGIHandler::execute()
 
                 // If execve failed the execution will continue
                 std::cout << strerror(errno);
+
+                // Clear heap
+                manager->clear();
                 exit(1);
             }
 
@@ -126,11 +129,6 @@ void CGIHandler::execute()
                 
                 // Assure all pipes are ready
 
-                FD_ZERO(&readfds);
-                FD_SET(timeout_pipe[0], &readfds);
-                FD_SET(error_pipe[0], &readfds);
-                FD_SET(output_pipe[0], &readfds);
-
                 FD_ZERO(&writefds);
                 FD_SET(timeout_pipe[1], &writefds);
                 FD_SET(error_pipe[1], &writefds);
@@ -139,8 +137,10 @@ void CGIHandler::execute()
                 timeout.tv_sec = 0;
                 timeout.tv_usec = 0;
 
-                if (select(6, &readfds, &writefds, NULL, &timeout) != 6)
-                    throw CGIHandlerException("Pipes are not ready");
+                int max_fd = std::max(std::max(timeout_pipe[1], error_pipe[1]), output_pipe[1]);
+
+                if (select(max_fd + 1, NULL, &writefds, NULL, &timeout) != 3)
+                    throw CGIHandlerException("Write Pipes are not ready");
 
                 if (!timedout && FD_ISSET(fork_pipe[0], &readfds))
                 {
@@ -182,6 +182,9 @@ void CGIHandler::execute()
                 close(timeout_pipe[0]);
                 close(error_pipe[0]);
                 close(output_pipe[0]);
+
+                // Clear heap
+                manager->clear();
 
                 exit(0);
             }
@@ -244,61 +247,86 @@ void CGIHandler::readPipes(void)
 
     char buffer[4096] = {0};
 
+    // Ensure at least one FD is ready
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(this->_timeout_pipe, &readfds);
+    FD_SET(this->_error_pipe, &readfds);
+    FD_SET(this->_output_pipe, &readfds);
+
+    int max_fd = std::max(std::max(this->_timeout_pipe, this->_error_pipe), this->_output_pipe);
+
+    struct timeval timeout_val;
+    timeout_val.tv_sec = 0;
+    timeout_val.tv_usec = 0;
+
+    if (select(max_fd + 1, &readfds, NULL, NULL, &timeout_val) == 0)
+        throw CGIHandlerException("Read Pipes are not ready");
+
     std::ostringstream timeout;
     std::ostringstream errors;
     std::ostringstream output;
 
     ssize_t bytesRead = 0;
 
-    while ((bytesRead = read(this->_timeout_pipe, buffer, sizeof(buffer))) > 0)
-        timeout << buffer;
-
-    if (bytesRead == -1)
-        throw CGIHandlerException("Read failed");
-
-    if (!timeout.str().empty())
+    if (FD_ISSET(this->_timeout_pipe, &readfds))
     {
-        this->_timedout = true;
+        while ((bytesRead = read(this->_timeout_pipe, buffer, sizeof(buffer))) > 0)
+            timeout << buffer;
 
-        close(this->_output_pipe);
-        close(this->_error_pipe);
-        close(this->_timeout_pipe);
+        if (bytesRead == -1)
+            throw CGIHandlerException("Read failed");
 
-        return;
+        if (!timeout.str().empty())
+        {
+            this->_timedout = true;
+
+            close(this->_output_pipe);
+            close(this->_error_pipe);
+            close(this->_timeout_pipe);
+
+            return;
+        }
     }
 
-    while ((bytesRead = read(this->_error_pipe, buffer, sizeof(buffer))) > 0)
-        errors << buffer;
-
-    if (bytesRead == -1)
-        throw CGIHandlerException("Read failed");
-
-    if (!errors.str().empty())
+    if (FD_ISSET(this->_error_pipe, &readfds))
     {
-        this->_errors = errors.str();
+         while ((bytesRead = read(this->_error_pipe, buffer, sizeof(buffer))) > 0)
+            errors << buffer;
 
-        close(this->_output_pipe);
-        close(this->_error_pipe);
-        close(this->_timeout_pipe);
+        if (bytesRead == -1)
+            throw CGIHandlerException("Read failed");
 
-        return;
+        if (!errors.str().empty())
+        {
+            this->_errors = errors.str();
+
+            close(this->_output_pipe);
+            close(this->_error_pipe);
+            close(this->_timeout_pipe);
+
+            return;
+        }
     }
 
-    while ((bytesRead = read(this->_output_pipe, buffer, sizeof(buffer))) > 0)
-        output << buffer;
-
-    if (bytesRead == -1)
-        throw CGIHandlerException("Read failed");
-
-    if (!output.str().empty())
+    if (FD_ISSET(this->_output_pipe, &readfds))
     {
-        this->_output = output.str();
+        while ((bytesRead = read(this->_output_pipe, buffer, sizeof(buffer))) > 0)
+            output << buffer;
 
-        close(this->_output_pipe);
-        close(this->_error_pipe);
-        close(this->_timeout_pipe);
+        if (bytesRead == -1)
+            throw CGIHandlerException("Read failed");
 
-        return;
+        if (!output.str().empty())
+        {
+            this->_output = output.str();
+
+            close(this->_output_pipe);
+            close(this->_error_pipe);
+            close(this->_timeout_pipe);
+
+            return;
+        }
     }
 }
 

@@ -20,6 +20,19 @@ void ServerManager::stopServers(void)
     }
 }
 
+void ServerManager::clear(void)
+{
+     std::vector<Server *>::iterator it = _servers.begin();
+
+    for (; it != _servers.end(); it++)
+    {
+        Server *server = *it;
+        server->clearClients();
+        close(server->getFd());
+        delete server;
+    }
+}
+
 void ServerManager::init(const std::string &path)
 {
     std::cout << GREY << "Launching ServerManager with configuration file: '" << BLUE << path << GREY << "'" << WHITE << std::endl;
@@ -83,9 +96,11 @@ void ServerManager::prepareFds(void)
     // Reset FDS
     FD_ZERO(&_readFds);
     FD_ZERO(&_writeFds);
+    FD_ZERO(&_errorFds);
 
     // Put stdin
     FD_SET(STDIN_FILENO, &_readFds);
+    FD_SET(STDIN_FILENO, &_errorFds);
 
     // Put serverFds
     std::vector<Server *>::iterator servIt = _servers.begin();
@@ -94,33 +109,40 @@ void ServerManager::prepareFds(void)
     {
         Server *server = (*servIt);
         FD_SET(server->getFd(), &_readFds);
+        FD_SET(server->getFd(), &_errorFds);
 
         std::map<int, Client *>::iterator it = server->getClients().begin();
 
         // Put all clients fd
         for (; it != server->getClients().end(); it++)
         {
-            FD_SET((*it).first, &_readFds);
-            if (!(*it).second->isReceiving())
-            {
+            if ((*it).second->isReceiving()) {
+                FD_SET((*it).first, &_readFds);
+            } else {
                 FD_SET((*it).first, &_writeFds);
             }
+            
+            FD_SET((*it).first, &_errorFds);
         }
     }
 }
 
 bool ServerManager::waitForUpdate(void)
 {
-    if (select(_maxFd + 1, &_readFds, &_writeFds, NULL, NULL) < 0)
+    if (select(_maxFd + 1, &_readFds, &_writeFds, &_errorFds, NULL) < 0)
         return (false);
+
+    if (FD_ISSET(STDIN_FILENO, &_errorFds)) {
+        return (false);
+    }
 
     if (FD_ISSET(STDIN_FILENO, &_readFds))
     {
+
         std::string line;
         std::getline(std::cin, line);
 
-        if (line.compare("stop") == 0)
-        {
+        if (line.compare("stop") == 0) {
             return (false);
         }
     }
@@ -138,8 +160,13 @@ bool ServerManager::newClientCheck(void)
         Server *server = (*it);
         int _serverFd = server->getFd();
 
-        if (!FD_ISSET(_serverFd, &_readFds))
+        if (FD_ISSET(_serverFd, &_errorFds)) {
+            return (false);
+        }
+
+        if (!FD_ISSET(_serverFd, &_readFds)) {
             continue;
+        }
 
         struct sockaddr_in infos;
         socklen_t infos_len = sizeof(infos);
@@ -181,8 +208,11 @@ void ServerManager::readCheck(void)
 
             try
             {
-                client.second->onReceive(server->getConfig());
-                continue;
+                if (!FD_ISSET(client.first, &_errorFds))
+                {
+                    client.second->onReceive(server->getConfig(), this);
+                    continue;
+                }
             }
             catch (std::exception &e)
             {
@@ -226,8 +256,8 @@ void ServerManager::writeCheck(void)
 
             try
             {
-                if (client.second->onSend())
-                {
+                if (!FD_ISSET(client.first, &_errorFds)
+                    && client.second->onSend()) {
                     continue;
                 }
             }

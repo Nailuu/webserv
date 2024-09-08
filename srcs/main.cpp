@@ -11,6 +11,9 @@ int main(int argc, char **argv)
         return (0);
     }
 
+    // Make write() returns -1 if socket was closed from other side
+    signal(SIGPIPE, SIG_IGN);
+
     try
     {
         // Launch ServerManager that will parse configuration file and manager servers

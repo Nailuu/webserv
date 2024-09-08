@@ -8,12 +8,14 @@
 #include "Request.hpp"
 #include "ServerConfig.hpp"
 
+class ServerManager;
+
 class CGIHandler
 {
 public:
     CGIHandler();
     void init(const ServerConfig &config, const Request &req, const Route *route, const std::string &path, int CGIExecutableIndex);
-    void execute();
+    void execute(ServerManager *manager);
     const std::string &getByKey(const std::string &key) const;
     bool isActive(void) const;
     const pid_t &getPid(void) const;

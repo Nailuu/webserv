@@ -244,7 +244,7 @@ end:
     _write = res.build(_request);
 }
 
-bool Client::HandleRequest(const ServerConfig &config)
+bool Client::HandleRequest(const ServerConfig &config, ServerManager *manager)
 {
     if (_request.getHttpVersion() != "HTTP/1.1")
     {
@@ -380,6 +380,8 @@ bool Client::HandleRequest(const ServerConfig &config)
 
     if (isCGI)
     {
+        _receiving = false;
+
         try
         {
             if (!this->_handler.isActive())
@@ -388,7 +390,7 @@ bool Client::HandleRequest(const ServerConfig &config)
                 this->_handler.init(config, this->_request, route, _path, CGIIndex);
 
                 // Execute CGI script
-                this->_handler.execute();
+                this->_handler.execute(manager);
             }
         }
         catch (const std::exception &e)
@@ -399,7 +401,6 @@ bool Client::HandleRequest(const ServerConfig &config)
             _write = res.build(_request);
         }
 
-        _receiving = false;
         return (true);
     }
     else if (_request.getMethod().getKey() == HttpMethod::GET.getKey())
@@ -414,7 +415,7 @@ bool Client::HandleRequest(const ServerConfig &config)
     return (true);
 }
 
-bool Client::onHeaderReceived(const ServerConfig &config)
+bool Client::onHeaderReceived(const ServerConfig &config, ServerManager *manager)
 {
     _headerParsed = true;
 
@@ -484,10 +485,10 @@ bool Client::onHeaderReceived(const ServerConfig &config)
         }
     }
 
-    return (HandleRequest(config));
+    return (HandleRequest(config, manager));
 }
 
-void Client::onReceive(const ServerConfig &config)
+void Client::onReceive(const ServerConfig &config, ServerManager *manager)
 {
     if (!_receiving)
         return;
@@ -524,7 +525,7 @@ void Client::onReceive(const ServerConfig &config)
 
     if (!_headerParsed)
     {
-        if (!onHeaderReceived(config))
+        if (!onHeaderReceived(config, manager))
             throw ClientException("Error in Header");
     }
 

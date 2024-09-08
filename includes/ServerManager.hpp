@@ -16,6 +16,7 @@ public:
     void init(const std::string &path);
     void run();
     void stopServers(void);
+    void clear(void);
 
 private:
     std::vector<ServerConfig> _configs;
@@ -23,6 +24,7 @@ private:
     int _maxFd;
     fd_set _readFds;
     fd_set _writeFds;
+    fd_set _errorFds;
     void prepareFds(void);
     bool waitForUpdate(void);
     bool newClientCheck(void);

@@ -28,6 +28,7 @@ public:
     void removeClient(std::map<int, Client*>::iterator pos);
     std::map<int, Client*> &getClients(void);
     void stopClients(void) const;
+    void clearClients(void) const;
     const ServerConfig& getConfig(void) const;
 
 private:

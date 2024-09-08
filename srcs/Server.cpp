@@ -88,6 +88,18 @@ void Server::stopClients(void) const
     }
 }
 
+void Server::clearClients(void) const
+{
+    std::map<int, Client *>::const_iterator it = _clients.begin();
+
+    for (; it != _clients.end(); it++)
+    {
+        close((*it).first);
+
+        delete ((*it).second);
+    }
+}
+
 const ServerConfig &Server::getConfig(void) const
 {
     return (this->_config);
