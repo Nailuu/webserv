@@ -3,6 +3,7 @@
 Route::Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex, bool alias)
 {
     this->_cgi = false;
+    this->_selected_cgi = 0;
     this->_max_body_size = maxBodySize;
     this->_autoindex = autoindex;
     this->_alias = alias;
@@ -84,29 +85,48 @@ void Route::update(const std::vector<Pair> &pairs)
     }
 
     // CGI
-    this->validate("cgi-ext", pairs, this->_cgi_ext, false);
-    if (!this->_cgi_ext.empty())
+    this->validate("cgi-ext", pairs, tmp, false);
+    if (!tmp.empty())
     {
         this->_cgi = true;
 
-        if (!startsWith(this->_cgi_ext, "*."))
-            throw RouteException("CGI extension in '" + highlight("cgi-ext") + "' is invalid, it should start with '" + highlight("*.") + "': '" + highlight(this->_cgi_ext) + "'");
+        try
+        {
+            const std::vector<std::string> ext = JSON::getValuesFromArray(tmp);
 
-        if (this->_cgi_ext.size() <= 2)
-            throw RouteException("Expected file extension in '" + highlight("cgi-ext") + "': " + highlight("'" + this->_cgi_ext + "'"));
+            for (std::vector<std::string>::const_iterator it = ext.begin(); it != ext.end(); it++)
+            {
+                if (!startsWith(*it, "*."))
+                    throw RouteException("CGI extension in '" + highlight("cgi-ext") + "' is invalid, it should start with '" + highlight("*.") + "': '" + highlight(*it) + "'");
 
-        // remove '*'
-        this->_cgi_ext = this->_cgi_ext.substr(1);
+                if ((*it).size() <= 2)
+                    throw RouteException("Expected file extension in '" + highlight("cgi-ext") + "': " + highlight("'" + (*it) + "'"));
 
-        this->validate("cgi-exec", pairs, this->_cgi_exec);
+                // remove '*' and push to vector
+                this->_cgi_ext.push_back((*it).substr(1));
+            }
 
-        std::ifstream file;
-        file.open(this->_cgi_exec.c_str());
+            this->validate("cgi-exec", pairs, tmp);
 
-        if (file.fail())
-            throw RouteException("Can't open CGI executable file at '" + highlight(this->_cgi_exec) + "': '" + highlight(std::string(strerror(errno))) + "'");
+            const std::vector<std::string> exec = JSON::getValuesFromArray(tmp);
 
-        file.close();
+            for (std::vector<std::string>::const_iterator it = exec.begin(); it != exec.end(); it++)
+            {
+                std::ifstream file;
+                file.open((*it).c_str());
+
+                if (file.fail())
+                    throw RouteException("Can't open CGI executable file at '" + highlight(*it) + "': '" + highlight(std::string(strerror(errno))) + "'");
+
+                file.close();
+
+                this->_cgi_exec.push_back(*it);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            throw;
+        }
     }
 
     // DIRECTORY LISTING "autoindex"
@@ -166,12 +186,12 @@ const std::string &Route::getRedirection(void) const
     return (this->_redirection);
 }
 
-const std::string &Route::getExtension(void) const
+const std::vector<std::string> &Route::getExtensions(void) const
 {
     return (this->_cgi_ext);
 }
 
-const std::string &Route::getExecutable(void) const
+const std::vector<std::string> &Route::getExecutables(void) const
 {
     return (this->_cgi_exec);
 }
@@ -232,8 +252,17 @@ std::ostream &operator<<(std::ostream &os, const Route &r)
 
         if (r.isCGI())
         {
-            os << "      CGI extension: " << highlight(r.getExtension(), false) << std::endl;
-            os << "      CGI executable: " << highlight(r.getExecutable(), false) << std::endl;
+            os << "      CGI extensions: ";
+            const std::vector<std::string> ext = r.getExtensions();
+            for (std::vector<std::string>::const_iterator it = ext.begin(); it != ext.end(); it++)
+                std::cout << (it == ext.begin() ? "" : ", ") << highlight(*it, false);
+            os << std::endl;
+
+            os << "      CGI executables: ";
+            const std::vector<std::string> exec = r.getExecutables();
+            for (std::vector<std::string>::const_iterator it = exec.begin(); it != exec.end(); it++)
+                std::cout << (it == exec.begin() ? "" : ", ") << highlight(*it, false);
+            os << std::endl;
         }
         else
             os << "      Index file: " << highlight(r.getIndex(), false) << std::endl;

@@ -18,19 +18,20 @@ class Route : public AConfiguration
 {
 public:
     Route(int maxBodySize, const std::string &route, const std::string &root, const std::string &index, const std::vector<HttpMethod> &methods, bool autoindex, bool alias);
-    void update(const std::vector<Pair>& pairs);
+    void update(const std::vector<Pair> &pairs);
     const std::string &getRoute(void) const;
     const std::string &getRedirection(void) const;
-    const std::string &getExtension(void) const;
-    const std::string &getExecutable(void) const;
+    const std::vector<std::string> &getExtensions(void) const;
+    const std::vector<std::string> &getExecutables(void) const;
     bool isCGI(void) const;
 
 private:
     bool _cgi;
+    int _selected_cgi;
     std::string _route;
     std::string _redirection;
-    std::string _cgi_ext;
-    std::string _cgi_exec;
+    std::vector<std::string> _cgi_ext;
+    std::vector<std::string> _cgi_exec;
     void stringToInt(const std::string &str, int &result, const std::string &context);
     void validate(const std::string &key, const std::vector<Pair> &pairs, std::string &result, bool mandatory = true);
 
@@ -47,4 +48,4 @@ private:
     };
 };
 
-std::ostream& operator<<(std::ostream& os, const Route& r);
+std::ostream &operator<<(std::ostream &os, const Route &r);

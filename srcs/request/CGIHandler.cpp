@@ -13,7 +13,7 @@ CGIHandler::CGIHandler() : _envs()
     this->_args = 0;
 }
 
-void CGIHandler::init(const ServerConfig &config, const Request &req, const Route *route, const std::string &path)
+void CGIHandler::init(const ServerConfig &config, const Request &req, const Route *route, const std::string &path, int CGIExecutableIndex)
 {
     // https://www.tutorialspoint.com/python/python_cgi_programming.htm
 
@@ -36,7 +36,7 @@ void CGIHandler::init(const ServerConfig &config, const Request &req, const Rout
     this->_envs["SERVER_NAME"] = config.getHost();
     this->_envs["SERVER_SOFTWARE"] = SERVER_NAME;
     this->_envs["SERVER_PROTOCOL"] = "HTTP/1.1";
-    this->_envs["CGI_SOFTWARE"] = route->getExecutable();
+    this->_envs["CGI_SOFTWARE"] = route->getExecutables().at(CGIExecutableIndex);
 
     std::ostringstream tmp2;
     tmp2 << config.getPort();
@@ -124,8 +124,12 @@ void CGIHandler::execute()
                 if (!timedout && FD_ISSET(fork_pipe[0], &readfds))
                 {
                     // While loop for reading blocking for some strange reasons????
-                    read(fork_pipe[0], buffer, sizeof(buffer));
-                    tmp << buffer;
+                    int readed = read(fork_pipe[0], buffer, sizeof(buffer));
+
+                    if (readed > 0)
+                        tmp << buffer;
+                    else if (readed == -1)
+                        throw CGIHandlerException("Error reaading from fork output");
                 }
 
                 if (timedout)
@@ -228,6 +232,9 @@ void CGIHandler::readPipes(void)
     while ((bytesRead = read(this->_timeout_pipe, buffer, sizeof(buffer))) > 0)
         timeout << buffer;
 
+    if (bytesRead == -1)
+        throw CGIHandlerException("Read failed");
+
     if (!timeout.str().empty())
     {
         this->_timedout = true;
@@ -242,6 +249,9 @@ void CGIHandler::readPipes(void)
     while ((bytesRead = read(this->_error_pipe, buffer, sizeof(buffer))) > 0)
         errors << buffer;
 
+    if (bytesRead == -1)
+        throw CGIHandlerException("Read failed");
+
     if (!errors.str().empty())
     {
         this->_errors = errors.str();
@@ -255,6 +265,9 @@ void CGIHandler::readPipes(void)
 
     while ((bytesRead = read(this->_output_pipe, buffer, sizeof(buffer))) > 0)
         output << buffer;
+
+    if (bytesRead == -1)
+        throw CGIHandlerException("Read failed");
 
     if (!output.str().empty())
     {

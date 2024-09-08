@@ -12,7 +12,7 @@ class CGIHandler
 {
 public:
     CGIHandler();
-    void init(const ServerConfig &config, const Request &req, const Route *route, const std::string &path);
+    void init(const ServerConfig &config, const Request &req, const Route *route, const std::string &path, int CGIExecutableIndex);
     void execute();
     const std::string &getByKey(const std::string &key) const;
     bool isActive(void) const;

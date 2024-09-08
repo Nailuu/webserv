@@ -278,6 +278,8 @@ bool Client::HandleRequest(const ServerConfig &config)
     }
 
     bool isCGI = false;
+    int CGIIndex = 0;
+
     if (route->isCGI())
     {
         std::string tmp = _request.getPath();
@@ -285,8 +287,19 @@ bool Client::HandleRequest(const ServerConfig &config)
         std::size_t pos = tmp.find_last_of('.');
         if (pos != std::string::npos)
         {
-            if (tmp.substr(pos) == route->getExtension() && pos != 0 && tmp.at(pos - 1) != '/')
-                isCGI = true;
+            const std::vector<std::string> ext = route->getExtensions();
+
+            int index = 0;
+            for (std::vector<std::string>::const_iterator it = ext.begin(); it != ext.end(); it++)
+            {
+                if (tmp.substr(pos) == (*it) && pos != 0 && tmp.at(pos - 1) != '/')
+                {
+                    isCGI = true;
+                    CGIIndex = index;
+                }
+
+                index++;
+            }
         }
     }
 
@@ -372,7 +385,7 @@ bool Client::HandleRequest(const ServerConfig &config)
             if (!this->_handler.isActive())
             {
                 // Init CGI environment variables
-                this->_handler.init(config, this->_request, route, _path);
+                this->_handler.init(config, this->_request, route, _path, CGIIndex);
 
                 // Execute CGI script
                 this->_handler.execute();
@@ -547,58 +560,67 @@ void Client::onReceive(const ServerConfig &config)
 
 bool Client::onSend(void)
 {
-    if (this->_handler.isActive())
+    try
     {
-
-        // Non blocking waitpid, flag -> WNOHANG
-        pid_t result = waitpid(this->_handler.getPid(), NULL, WNOHANG);
-
-        // Fork still running
-        if (result == 0)
-            return (true);
-
-        // Fork has stopped
-        else if (result > 0)
+        if (this->_handler.isActive())
         {
-            this->_handler.readPipes();
 
-            // If fork exited with code 1
-            if (this->_handler.hasErrors())
+            // Non blocking waitpid, flag -> WNOHANG
+            pid_t result = waitpid(this->_handler.getPid(), NULL, WNOHANG);
+
+            // Fork still running
+            if (result == 0)
+                return (true);
+
+            // Fork has stopped
+            else if (result > 0)
             {
-                Response res = Response::getErrorResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
+                this->_handler.readPipes();
 
-                std::ostringstream content;
-                content << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>CGI Script Error</title><style>body{font-family:Arial,sans-serif;background-color:#f8f8f8;color:#333;text-align:center;margin:50px;}.error-box{background-color:#eaeaea;color:#d95050;text-align:start;padding:20px;border-radius:5px;display:inline-block;white-space:pre-wrap;}</style></head><body><h1>CGI Script Error</h1><div class=\"error-box\">";
-                content << this->_handler.getErrors();
-                content << "</div></body></html>";
-
-                res.setContent(content.str(), MimeType::TEXT_HTML);
-
-                this->_write = res.build(_request);
-            }
-            else
-            {
-                // Fork execution has timedout
-                if (this->_handler.hasTimedOut())
+                // If fork exited with code 1
+                if (this->_handler.hasErrors())
                 {
-                    Response res("HTTP/1.1", HttpStatusCode::GATEWAY_TIMEOUT);
-                    res.setContent("<h1 style=\"text-align: center\">CGI SCRIPT TIMEOUT</h1>", MimeType::TEXT_HTML);
+                    Response res = Response::getErrorResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
+
+                    std::ostringstream content;
+                    content << "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>CGI Script Error</title><style>body{font-family:Arial,sans-serif;background-color:#f8f8f8;color:#333;text-align:center;margin:50px;}.error-box{background-color:#eaeaea;color:#d95050;text-align:start;padding:20px;border-radius:5px;display:inline-block;white-space:pre-wrap;}</style></head><body><h1>CGI Script Error</h1><div class=\"error-box\">";
+                    content << this->_handler.getErrors();
+                    content << "</div></body></html>";
+
+                    res.setContent(content.str(), MimeType::TEXT_HTML);
 
                     this->_write = res.build(_request);
                 }
                 else
                 {
-                    Response res("HTTP/1.1", HttpStatusCode::OK);
-                    res.setContent(this->_handler.getOutput(), MimeType::TEXT_HTML);
-                    res.addField("Connection", "close");
+                    // Fork execution has timedout
+                    if (this->_handler.hasTimedOut())
+                    {
+                        Response res("HTTP/1.1", HttpStatusCode::GATEWAY_TIMEOUT);
+                        res.setContent("<h1 style=\"text-align: center\">CGI SCRIPT TIMEOUT</h1>", MimeType::TEXT_HTML);
 
-                    this->_write = res.build(_request);
+                        this->_write = res.build(_request);
+                    }
+                    else
+                    {
+                        Response res("HTTP/1.1", HttpStatusCode::OK);
+                        res.setContent(this->_handler.getOutput(), MimeType::TEXT_HTML);
+                        res.addField("Connection", "close");
+
+                        this->_write = res.build(_request);
+                    }
                 }
             }
+            else
+                throw ClientException("Waitpid of CGI fork has failed!");
         }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << RED << "Runtime Error: CGI/Client Error " << YELLOW << " - " << e.what() << WHITE << std::endl;
 
-        else
-            throw ClientException("Waitpid of CGI fork has failed!");
+        Response res = Response::getErrorResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
+        _write = res.build(_request);
     }
 
     if (this->_write.empty())
