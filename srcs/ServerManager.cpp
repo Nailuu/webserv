@@ -1,6 +1,9 @@
 #include "ServerManager.hpp"
 
-ServerManager::ServerManager() : _maxFd(0) {}
+ServerManager::ServerManager() : _maxFd(0)
+{
+    this->_cookiesManager.newCookie("WOW");
+}
 
 ServerManager::~ServerManager()
 {
@@ -22,7 +25,7 @@ void ServerManager::stopServers(void)
 
 void ServerManager::clear(void)
 {
-     std::vector<Server *>::iterator it = _servers.begin();
+    std::vector<Server *>::iterator it = _servers.begin();
 
     for (; it != _servers.end(); it++)
     {
@@ -72,7 +75,8 @@ void ServerManager::init(const std::string &path)
         }
     }
 
-    std::cout << GREY << "\n------------------------------------------\n" << WHITE << std::endl;
+    std::cout << GREY << "\n------------------------------------------\n"
+              << WHITE << std::endl;
 }
 
 void ServerManager::run(void)
@@ -116,12 +120,15 @@ void ServerManager::prepareFds(void)
         // Put all clients fd
         for (; it != server->getClients().end(); it++)
         {
-            if ((*it).second->isReceiving()) {
+            if ((*it).second->isReceiving())
+            {
                 FD_SET((*it).first, &_readFds);
-            } else {
+            }
+            else
+            {
                 FD_SET((*it).first, &_writeFds);
             }
-            
+
             FD_SET((*it).first, &_errorFds);
         }
     }
@@ -132,7 +139,8 @@ bool ServerManager::waitForUpdate(void)
     if (select(_maxFd + 1, &_readFds, &_writeFds, &_errorFds, NULL) < 0)
         return (false);
 
-    if (FD_ISSET(STDIN_FILENO, &_errorFds)) {
+    if (FD_ISSET(STDIN_FILENO, &_errorFds))
+    {
         return (false);
     }
 
@@ -142,7 +150,8 @@ bool ServerManager::waitForUpdate(void)
         std::string line;
         std::getline(std::cin, line);
 
-        if (line.compare("stop") == 0) {
+        if (line.compare("stop") == 0)
+        {
             return (false);
         }
     }
@@ -160,11 +169,13 @@ bool ServerManager::newClientCheck(void)
         Server *server = (*it);
         int _serverFd = server->getFd();
 
-        if (FD_ISSET(_serverFd, &_errorFds)) {
+        if (FD_ISSET(_serverFd, &_errorFds))
+        {
             return (false);
         }
 
-        if (!FD_ISSET(_serverFd, &_readFds)) {
+        if (!FD_ISSET(_serverFd, &_readFds))
+        {
             continue;
         }
 
@@ -179,7 +190,7 @@ bool ServerManager::newClientCheck(void)
         if (fd_client > _maxFd)
             _maxFd = fd_client;
 
-        server->addClient(fd_client, new Client(fd_client));
+        server->addClient(fd_client, new Client(fd_client, this->_cookiesManager));
     }
 
     return (true);
@@ -256,8 +267,8 @@ void ServerManager::writeCheck(void)
 
             try
             {
-                if (!FD_ISSET(client.first, &_errorFds)
-                    && client.second->onSend()) {
+                if (!FD_ISSET(client.first, &_errorFds) && client.second->onSend())
+                {
                     continue;
                 }
             }

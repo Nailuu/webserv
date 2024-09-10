@@ -21,6 +21,7 @@ public:
 private:
     std::vector<ServerConfig> _configs;
     std::vector<Server *> _servers;
+    CookiesManager _cookiesManager;
     int _maxFd;
     fd_set _readFds;
     fd_set _writeFds;

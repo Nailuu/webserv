@@ -6,11 +6,11 @@
 #include <string>
 #include <fstream>
 
-Client::Client(const int fd) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(std::string::npos), _reader(_fd), _write("") {}
+Client::Client(const int fd, CookiesManager &cookiesManager) : _fd(fd), _headerParsed(false), _receiving(true), _path(""), _contentLength(std::string::npos), _reader(_fd), _write(""), _cookies(cookiesManager) {}
 
 Client::~Client() {}
 
-Client::Client(const Client &other) : _fd(other._fd), _headerParsed(other._headerParsed), _receiving(other._receiving), _path(other._path), _contentLength(0), _reader(other._reader), _request(other._request), _write(other._write) {}
+Client::Client(const Client &other) : _fd(other._fd), _headerParsed(other._headerParsed), _receiving(other._receiving), _path(other._path), _contentLength(0), _reader(other._reader), _request(other._request), _write(other._write), _cookies(other._cookies) {}
 
 Client Client::operator=(const Client &other)
 {
@@ -33,8 +33,20 @@ void Client::onGetRequest(bool autoIndex)
 
     try
     {
-        Response res = Response::getFileResponse(_path, autoIndex, _request.getPath());
-        _write = res.build(_request);
+        const std::string &cookie = this->_request.getFieldsValueByName("Cookie");
+
+        if (cookie.empty())
+        {
+            Response res = Response::getFileResponse(_path, autoIndex, _request.getPath());
+            _write = res.build(this->_request);
+        }
+        else
+        {
+            Response res = Response("HTTP/1.1", HttpStatusCode::OK);
+            res.setContent(_cookies.generateCookiePage(cookie), MimeType::TEXT_HTML);
+
+            _write = res.build(this->_request);
+        }
     }
     catch (const std::exception &e)
     {
@@ -88,6 +100,19 @@ void Client::onPostRequest()
     else
     {
         body = body.substr(0, body.length() - 4); // Remove "\r\n\r\n"
+    }
+
+    // For Cookie Demo
+    if (this->_request.getPath() == "/set-cookie")
+    {
+        const std::string &id = this->_cookies.newCookie(body);
+
+        Response res = Response("HTTP/1.1", HttpStatusCode::OK);
+        res.addField("Connection", "close");
+        res.addField("Set-Cookie", id);
+
+        _write = res.build(_request);
+        return;
     }
 
     std::map<std::string, std::string>::const_iterator it = _request.getFields().find("Content-Type");
@@ -262,7 +287,7 @@ bool Client::HandleRequest(const ServerConfig &config, ServerManager *manager)
     }
     catch (const std::exception &e)
     {
-        Response res = Response::getErrorResponse(HttpStatusCode::BAD_REQUEST);
+        Response res = Response::getErrorResponse(HttpStatusCode::NOT_FOUND);
         _write = res.build(_request);
         _receiving = false;
         return (true);

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Username</title>
+    <script>
+        // Function to send the username to the server
+        function sendUsername() {
+            // Get the input value
+            let username = document.getElementById("usernameInput").value;
+
+            if (username === "") {
+                document.getElementById("status").textContent = "Please enter a username.";
+                return;
+            }
+
+            // Prepare the POST request
+            fetch('/set-cookie', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+                body: username,
+            })
+                .catch(error => {
+                    document.getElementById("status").textContent = error.message;
+                });
+        }
+    </script>
+</head>
+
+<body>
+
+    <h1>Set Username</h1>
+
+    <label for="usernameInput">Enter your username:</label>
+    <input type="text" id="usernameInput" placeholder="Enter username">
+
+    <button onclick="sendUsername()">Send Username</button>
+
+    <p id="status"></p>
+
+</body>
+
+</html>
