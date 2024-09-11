@@ -35,16 +35,16 @@ void Client::onGetRequest(bool autoIndex)
     {
         const std::string &cookie = this->_request.getFieldsValueByName("Cookie");
 
-        if (cookie.empty())
-        {
-            Response res = Response::getFileResponse(_path, autoIndex, _request.getPath());
-            _write = res.build(this->_request);
-        }
-        else
+        if (!cookie.empty() && this->_request.getPath() == "/cookies")
         {
             Response res = Response("HTTP/1.1", HttpStatusCode::OK);
             res.setContent(_cookies.generateCookiePage(cookie), MimeType::TEXT_HTML);
 
+            _write = res.build(this->_request);
+        }
+        else
+        {
+            Response res = Response::getFileResponse(_path, autoIndex, _request.getPath());
             _write = res.build(this->_request);
         }
     }
